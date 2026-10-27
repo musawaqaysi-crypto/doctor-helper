@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مساعد الطبيب</title>
+<meta name="description" content="روابط وبروتوكولات سريعة لأطباء الطوارئ">
+<meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="مساعد الطبيب">
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --text:#14202b; --muted:#5b6b7a; --line:#e2e8ee;
+  --brand:#0f766e; --brand-soft:#e3f3f1; --danger:#c2410c; --danger-soft:#fdeee5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1419; --card:#172129; --text:#e7edf2; --muted:#93a3b1; --line:#253340;
+    --brand:#2dd4bf; --brand-soft:#123a37; --danger:#fb923c; --danger-soft:#3a2216;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1419; --card:#172129; --text:#e7edf2; --muted:#93a3b1; --line:#253340;
+  --brand:#2dd4bf; --brand-soft:#123a37; --danger:#fb923c; --danger-soft:#3a2216;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,"SF Arabic","Segoe UI",Tahoma,sans-serif;line-height:1.6;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+header{background:var(--brand);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 14px}
+:root[data-theme="dark"] header{color:#06201d}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) header{color:#06201d}}
+header h1{margin:0;font-size:1.3rem}
+header p{margin:2px 0 0;font-size:.85rem;opacity:.85}
+main{max-width:720px;margin:0 auto;padding:16px}
+.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);color:var(--text);font-size:1rem;margin-bottom:14px}
+.nidaa{display:flex;align-items:center;gap:12px;background:var(--danger-soft);color:var(--danger);
+  border:1px solid var(--danger);border-radius:14px;padding:14px;text-decoration:none;font-weight:700;margin-bottom:18px}
+.nidaa small{display:block;font-weight:400;color:var(--muted)}
+h2{font-size:1rem;color:var(--muted);margin:18px 4px 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.link{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:12px;text-decoration:none;color:var(--text);position:relative}
+.link b{display:block;font-size:.95rem}
+.link span{display:block;font-size:.78rem;color:var(--muted)}
+.link .del{position:absolute;top:6px;left:8px;border:0;background:none;color:var(--muted);font-size:1rem;cursor:pointer}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
+summary{padding:14px;font-weight:700;cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"◂ ";color:var(--brand)}
+details[open] summary::before{content:"▾ "}
+details .body{padding:0 16px 14px;font-size:.92rem}
+details ul{margin:0;padding-inline-start:20px}
+details li{margin-bottom:4px}
+.dose{direction:ltr;unicode-bidi:isolate;font-weight:600;color:var(--brand)}
+.note{font-size:.8rem;color:var(--muted);background:var(--brand-soft);border-radius:10px;padding:10px 12px;margin-top:14px}
+.add{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:10px}
+.add input{padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font-size:.9rem;min-width:0}
+.add button,.tabs button{border:0;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;padding:10px 14px;font-size:.9rem}
+nav.tabs{position:fixed;bottom:0;inset-inline:0;background:var(--card);border-top:1px solid var(--line);
+  display:flex;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));justify-content:center}
+.tabs button{flex:1;max-width:220px;background:var(--bg);color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--brand);color:#fff}
+:root[data-theme="dark"] .tabs button[aria-selected="true"]{color:#06201d}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tabs button[aria-selected="true"],
+  :root:not([data-theme="light"]) .add button{color:#06201d}}
+[hidden]{display:none!important}
+.empty{color:var(--muted);text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🩺 مساعد الطبيب</h1>
+  <p>روابط وبروتوكولات سريعة للطوارئ</p>
+</header>
+
+<main>
+  <input class="search" id="q" type="search" placeholder="ابحث… مثل ECG، جرعة، sepsis" autocomplete="off">
+
+  <a class="nidaa" href="https://drmusawa.com/codes/" target="_blank" rel="noopener">
+    <span style="font-size:1.6rem">🚨</span>
+    <span>نداء — المناوبين والسياسات<small>جداول المناوبات حسب التخصص وسياسات المستشفى</small></span>
+  </a>
+
+  <section id="tab-links"></section>
+  <section id="tab-protocols" hidden></section>
+  <p class="empty" id="empty" hidden>ما فيه نتائج</p>
+</main>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-tab="links">🔗 الروابط</button>
+  <button role="tab" aria-selected="false" data-tab="protocols">📋 البروتوكولات</button>
+</nav>
+
+<script>
+const LINKS = [
+  {cat:"مراجع", items:[
+    ["UpToDate","المرجع السريري الشامل","https://www.uptodate.com"],
+    ["Medscape","أمراض وأدوية","https://reference.medscape.com"],
+    ["WikEM","مرجع طب الطوارئ","https://wikem.org"],
+    ["NICE","الإرشادات البريطانية","https://www.nice.org.uk/guidance"],
+  ]},
+  {cat:"حاسبات وأدوية", items:[
+    ["MDCalc","حاسبات وقواعد سريرية","https://www.mdcalc.com"],
+    ["BNF","دليل الأدوية والجرعات","https://bnf.nice.org.uk"],
+    ["Drug Interactions","فحص التداخلات الدوائية","https://www.drugs.com/drug_interactions.html"],
+    ["SFDA","هيئة الغذاء والدواء","https://www.sfda.gov.sa"],
+  ]},
+  {cat:"ECG وأشعة", items:[
+    ["LITFL ECG","مكتبة تخطيط القلب","https://litfl.com/ecg-library/"],
+    ["Radiopaedia","حالات وصور أشعة","https://radiopaedia.org"],
+    ["POCUS Atlas","الألتراساوند عند السرير","https://www.thepocusatlas.com"],
+  ]},
+  {cat:"إنعاش وتعليم", items:[
+    ["AHA CPR","إرشادات الإنعاش ACLS/PALS","https://cpr.heart.org"],
+    ["EMCrit","العناية الحرجة بالطوارئ","https://emcrit.org"],
+    ["ALiEM","تعليم طب الطوارئ","https://www.aliem.com"],
+  ]},
+  {cat:"جهات سعودية", items:[
+    ["وزارة الصحة","moh.gov.sa","https://www.moh.gov.sa"],
+    ["الهيئة السعودية للتخصصات الصحية","scfhs.org.sa","https://www.scfhs.org.sa"],
+  ]},
+];
+
+const PROTOCOLS = [
+  {t:"🫀 توقف القلب (ACLS — بالغين)", k:"cardiac arrest cpr acls vf vt pea asystole", b:`
+<ul>
+<li>ضغطات صدرية 100–120/دقيقة، عمق 5–6 سم، أقل مقاطعة ممكنة، 30:2 قبل تأمين مجرى الهواء</li>
+<li><b>VF / pVT:</b> صدمة ← CPR دقيقتين ← صدمة ← <span class="dose">Adrenaline 1 mg IV</span> ← صدمة ← <span class="dose">Amiodarone 300 mg</span> ثم <span class="dose">150 mg</span></li>
+<li><b>PEA / Asystole:</b> <span class="dose">Adrenaline 1 mg</span> بأسرع وقت، وتكرر كل 3–5 دقائق</li>
+<li>ابحث عن الأسباب القابلة للعكس: 5H و5T</li>
+<li>بعد عودة النبض: SpO₂ 92–98%، MAP ≥ 65، ECG 12 lead</li>
+</ul>`},
+  {t:"🐝 الحساسية المفرطة (Anaphylaxis)", k:"anaphylaxis allergy adrenaline epinephrine", b:`
+<ul>
+<li><span class="dose">Adrenaline IM 1:1000</span> في الفخذ الخارجي: بالغ <span class="dose">0.5 mg</span>، طفل <span class="dose">0.01 mg/kg (max 0.5 mg)</span></li>
+<li>تكرر كل 5 دقائق إذا ما فيه تحسن</li>
+<li>أكسجين، استلقاء ورفع الرجلين، سوائل <span class="dose">20 mL/kg</span> إذا فيه هبوط ضغط</li>
+<li>مضادات الهيستامين والستيرويد علاج مساعد فقط ولا تؤخر الأدرينالين</li>
+<li>راقب احتمال التفاعل الثاني (biphasic)</li>
+</ul>`},
+  {t:"🦠 تعفن الدم (Sepsis — الساعة الأولى)", k:"sepsis septic shock lactate antibiotics", b:`
+<ul>
+<li>Lactate، وأعده إذا كان أعلى من 2</li>
+<li>مزارع الدم قبل المضاد الحيوي</li>
+<li>مضاد حيوي واسع خلال ساعة</li>
+<li>سوائل كريستالويد <span class="dose">30 mL/kg</span> إذا فيه هبوط ضغط أو Lactate ≥ 4</li>
+<li>Noradrenaline إذا استمر الهبوط، والهدف MAP ≥ 65</li>
+</ul>`},
+  {t:"🧠 الجلطة الدماغية الحادة", k:"stroke cva thrombolysis alteplase tenecteplase", b:`
+<ul>
+<li>فحص السكر فوراً، وCT خلال 20–25 دقيقة من الوصول</li>
+<li>Door-to-needle ≤ 60 دقيقة، ونافذة الإذابة حتى 4.5 ساعات من آخر وقت كان فيه طبيعي</li>
+<li><span class="dose">Alteplase 0.9 mg/kg (max 90 mg)</span>: 10% دفعة، والباقي على ساعة</li>
+<li>أو <span class="dose">Tenecteplase 0.25 mg/kg (max 25 mg)</span> دفعة واحدة</li>
+<li>الضغط قبل الإذابة أقل من 185/110، وبعدها أقل من 180/105</li>
+<li>فكّر في الاستئصال الميكانيكي إذا فيه انسداد شريان كبير (LVO)</li>
+</ul>`},
+  {t:"❤️ احتشاء القلب STEMI", k:"stemi mi acs chest pain aspirin pci", b:`
+<ul>
+<li>ECG خلال 10 دقائق من الوصول</li>
+<li><span class="dose">Aspirin 162–325 mg</span> مضغ</li>
+<li>Door-to-balloon ≤ 90 دقيقة، وإذا ما فيه قسطرة متاحة: إذابة خلال 30 دقيقة</li>
+<li>تفعيل فريق القسطرة حسب سياسة المستشفى</li>
+</ul>`},
+];
+
+const LS = "dh-custom-links";
+function loadCustom(){ try{ return JSON.parse(localStorage.getItem(LS)) || []; }catch{ return []; } }
+function saveCustom(a){ try{ localStorage.setItem(LS, JSON.stringify(a)); }catch{} }
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function renderLinks(q){
+  const custom = loadCustom();
+  const groups = [...LINKS];
+  groups.push({cat:"روابطي", items:custom.map((c,i)=>[c.n,"رابط شخصي",c.u,i]), mine:true});
+  let html = "", hits = 0;
+  for (const g of groups){
+    const items = g.items.filter(([n,d,u]) => !q || (n+" "+d+" "+u+" "+g.cat).toLowerCase().includes(q));
+    if (!items.length && !(g.mine && !q)) continue;
+    hits += items.length;
+    html += `<h2>${g.cat}</h2><div class="grid">` + items.map(([n,d,u,i]) =>
+      `<a class="link" href="${esc(u)}" target="_blank" rel="noopener"><b>${esc(n)}</b><span>${esc(d)}</span>${
+        i!==undefined?`<button class="del" data-i="${i}" aria-label="حذف">×</button>`:""}</a>`).join("") + `</div>`;
+    if (g.mine && !q) html += `<form class="add" id="add"><input name="n" placeholder="الاسم" required><input name="u" type="url" placeholder="https://…" required dir="ltr"><button>إضافة</button></form>`;
+  }
+  document.getElementById("tab-links").innerHTML = html;
+  return hits;
+}
+
+function renderProtocols(q){
+  const items = PROTOCOLS.filter(p => !q || (p.t+" "+p.k+" "+p.b).toLowerCase().includes(q));
+  document.getElementById("tab-protocols").innerHTML = items.map(p =>
+    `<details${q?" open":""}><summary>${p.t}</summary><div class="body">${p.b}</div></details>`).join("") +
+    (items.length ? `<p class="note">⚠️ مرجع سريع مبني على الإرشادات العالمية، ولا يغني عن سياسة المستشفى والتقييم السريري.</p>` : "");
+  return items.length;
+}
+
+let tab = "links";
+function render(){
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const n = tab === "links" ? renderLinks(q) : renderProtocols(q);
+  document.getElementById("tab-links").hidden = tab !== "links";
+  document.getElementById("tab-protocols").hidden = tab !== "protocols";
+  document.getElementById("empty").hidden = !(q && !n);
+}
+
+document.getElementById("q").addEventListener("input", render);
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  render();
+});
+document.addEventListener("submit", e => {
+  if (e.target.id !== "add") return;
+  e.preventDefault();
+  const f = new FormData(e.target);
+  saveCustom([...loadCustom(), {n:f.get("n"), u:f.get("u")}]);
+  render();
+});
+document.addEventListener("click", e => {
+  const d = e.target.closest(".del"); if (!d) return;
+  e.preventDefault();
+  const a = loadCustom(); a.splice(+d.dataset.i, 1); saveCustom(a); render();
+});
+
+render();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
