@@ -466,6 +466,8 @@ async function loadDuty(){
     }
     const at = hm(now);
     me = d.name || ""; store.set("dh-me", me);
+    // Until the first roster is uploaded, show the marked demo board instead of an empty page.
+    if (!d.rows.length) { duty = DEMO; dutySrc = "demo"; store.set("dh-rows", null); return render(); }
     store.set("dh-rows", {rows: d.rows, at});
     duty = groupNow(d.rows, at); dutySrc = "live"; render();
   } catch {
