@@ -168,6 +168,19 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 .dtile.cons{border-color:color-mix(in srgb,var(--cons) 55%,transparent);background:var(--cons-soft)} .dtile.cons b{color:var(--cons)}
 .dtile.none{border-style:dashed;opacity:.55} .dtile.none b{color:var(--muted)}
 
+/* phones: keep the three levels side by side like the wide board */
+@media (max-width:640px){
+  .tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .dcard{padding:12px;gap:10px;border-radius:16px}
+  .dtile{padding:8px 4px;border-radius:10px;gap:1px}
+  .dtile .code{font-size:.58rem;letter-spacing:.08em}
+  .dtile .lv{font-size:.66rem}
+  .dtile b{font-size:.8rem}
+  .dtile .ph{font-size:.66rem}
+  .dtile .tm{font-size:.6rem}
+  .board-h h2{font-size:1.25rem}
+  .addbtn{padding:8px 12px;font-size:.85rem}
+}
 /* wide screens: sidebar replaces header, chips and tab bar */
 aside.side{display:none}
 @media (min-width:900px){
