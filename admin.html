@@ -206,12 +206,25 @@ td.num{font-family:var(--f-data);direction:ltr;text-align:right}
 
   <section class="card">
     <div class="card-h"><span class="tile"><svg class="i"><use href="#i-key"/></svg></span>
-      <div><h2>رمز دخول الأطباء</h2><p id="code-info">الرمز اللي يكتبه الطبيب أول مرة يفتح التطبيق</p></div></div>
-    <form id="f-code" class="row">
-      <div class="field"><label for="code">رمز جديد (6 خانات أو أكثر)</label><input id="code" minlength="6" required dir="ltr" autocomplete="off"></div>
-      <button class="btn primary">تغيير الرمز</button>
+      <div><h2>الأطباء المسموح لهم</h2><p>الطبيب يدخل التطبيق برقمه الوظيفي وآخر 4 أرقام من جواله</p></div></div>
+    <div class="row">
+      <button class="btn ghost" id="s-tpl"><svg class="i"><use href="#i-download"/></svg>نموذج قائمة الأطباء</button>
+      <label class="btn ghost" for="s-file" style="cursor:pointer"><svg class="i"><use href="#i-upload"/></svg>رفع قائمة</label>
+      <input type="file" id="s-file" accept=".xlsx,.xls,.csv" hidden>
+    </div>
+    <div id="s-msg"></div>
+    <form id="f-staff" class="card" style="background:var(--bg);padding:14px">
+      <div class="row">
+        <div class="field"><label for="s-emp">الرقم الوظيفي</label><input id="s-emp" required dir="ltr" inputmode="numeric"></div>
+        <div class="field"><label for="s-name">الاسم</label><input id="s-name" required></div>
+        <div class="field" style="max-width:150px"><label for="s-pin">آخر 4 أرقام من الجوال</label><input id="s-pin" required dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9٠-٩]{4}"></div>
+        <button class="btn primary"><svg class="i"><use href="#i-plus"/></svg>إضافة</button>
+      </div>
     </form>
-    <div id="code-msg"></div>
+    <div class="row">
+      <div class="field"><label for="s-q">بحث</label><input id="s-q" placeholder="اسم أو رقم وظيفي"></div>
+    </div>
+    <div id="s-list"></div>
   </section>
 </main>
 
@@ -249,7 +262,7 @@ sb.auth.onAuthStateChange(async (_ev, session) => {
   const { data } = await sb.rpc("is_admin");
   if (!data) { await sb.auth.signOut(); msg("login-msg", "err", "هذا الحساب ما عنده صلاحية مشرف."); return; }
   show("v-admin");
-  loadDay(); loadCodeInfo();
+  loadDay(); loadStaff();
 });
 
 // ---------- parsing ----------
@@ -400,17 +413,73 @@ $("f-add").onsubmit = async e => {
   if (!error) { $("a-name").value = ""; $("a-phone").value = ""; loadDay(); }
 };
 
-// ---------- doctors' code ----------
-async function loadCodeInfo(){
-  const { data } = await sb.rpc("code_updated_at");
-  $("code-info").textContent = data ? `آخر تغيير: ${new Date(data).toLocaleString("ar-SA-u-nu-latn", { dateStyle: "medium", timeStyle: "short" })}` : "ما فيه رمز للحين. حط رمز عشان الأطباء يقدرون يدخلون.";
+// ---------- doctors allowed to sign in ----------
+const digits = s => String(s ?? "").trim().replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/\s+/g, "");
+const pinOf = v => { const d = digits(v).replace(/\D/g, ""); return d.length >= 4 ? d.slice(-4) : null; };
+let staff = [];
+async function loadStaff(){
+  const { data, error } = await sb.from("staff").select("*").order("name");
+  if (error) return $("s-list").innerHTML = `<p class="empty">ما قدرت أجيب القائمة.</p>`;
+  staff = data; renderStaff();
 }
-$("f-code").onsubmit = async e => {
+function renderStaff(){
+  const q = $("s-q").value.trim().toLowerCase();
+  const rows = staff.filter(s => !q || `${s.name} ${s.emp_id}`.toLowerCase().includes(q));
+  const on = staff.filter(s => s.active).length;
+  $("s-list").innerHTML = !staff.length ? `<p class="empty">ما فيه أطباء للحين. ارفع القائمة أو أضف طبيب.</p>` :
+    `<p style="margin:0;font-size:.82rem;color:var(--muted)">${staff.length} طبيب · ${on} مفعّل</p>
+    <div class="tablewrap"><table><tr><th>الاسم</th><th>الرقم الوظيفي</th><th>آخر دخول</th><th>الحالة</th><th></th></tr>` +
+    rows.map(s => `<tr><td>${esc(s.name)}</td><td class="num">${esc(s.emp_id)}</td>
+      <td class="num">${s.last_seen ? new Date(s.last_seen).toLocaleDateString("en-GB") : "—"}</td>
+      <td><button class="btn ${s.active ? "ghost" : "danger"}" style="padding:4px 10px;font-size:.78rem" data-toggle="${esc(s.emp_id)}">${s.active ? "مفعّل" : "موقوف"}</button></td>
+      <td><button class="icon-btn" data-sdel="${esc(s.emp_id)}" aria-label="حذف ${esc(s.name)}">${icon("trash")}</button></td></tr>`).join("") + `</table></div>`;
+}
+$("s-q").oninput = renderStaff;
+$("s-list").onclick = async e => {
+  const tg = e.target.closest("[data-toggle]");
+  if (tg) { const s = staff.find(x => x.emp_id === tg.dataset.toggle); await sb.from("staff").update({ active: !s.active }).eq("emp_id", s.emp_id); return loadStaff(); }
+  const d = e.target.closest("[data-sdel]"); if (!d) return;
+  if (d.dataset.armed !== "1") { d.dataset.armed = "1"; d.style.color = "var(--alert)"; d.title = "اضغط مرة ثانية للتأكيد"; setTimeout(() => { d.dataset.armed = ""; d.style.color = ""; }, 3000); return; }
+  await sb.from("staff").delete().eq("emp_id", d.dataset.sdel); loadStaff();
+};
+$("f-staff").onsubmit = async e => {
   e.preventDefault();
-  const { error } = await sb.rpc("set_access_code", { p_code: $("code").value.trim() });
-  if (error) return msg("code-msg", "err", "ما تغيّر الرمز. لازم يكون 6 خانات أو أكثر.");
-  msg("code-msg", "ok", "تغيّر الرمز. الأطباء بيطلب منهم الرمز الجديد في المرة الجاية.");
-  $("code").value = ""; loadCodeInfo();
+  const pin = pinOf($("s-pin").value);
+  if (!pin) return msg("s-msg", "err", "اكتب آخر 4 أرقام من الجوال.");
+  const { error } = await sb.from("staff").upsert({ emp_id: digits($("s-emp").value), name: $("s-name").value.trim(), pin, active: true });
+  if (error) return msg("s-msg", "err", "ما انحفظ. تأكد من البيانات وحاول مرة ثانية.");
+  msg("s-msg", "ok", "انضاف الطبيب، ويقدر يدخل الحين.");
+  ["s-emp", "s-name", "s-pin"].forEach(id => $(id).value = ""); loadStaff();
+};
+$("s-tpl").onclick = () => {
+  const ws = XLSX.utils.aoa_to_sheet([["الرقم الوظيفي", "الاسم", "الجوال"], ["123456", "(مثال) د. أحمد", "0500001234"]]);
+  ws["!cols"] = [14, 26, 14].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] };
+  XLSX.utils.book_append_sheet(wb, ws, "الأطباء");
+  XLSX.writeFile(wb, "نموذج-قائمة-الأطباء.xlsx");
+};
+$("s-file").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: "" });
+    const H = { emp: ["الرقم الوظيفي", "رقم وظيفي", "الرقم", "employee", "employeeid", "empid", "id"], name: ["الاسم", "اسم الطبيب", "name"], phone: ["الجوال", "رقم الجوال", "الهاتف", "phone", "mobile", "آخر4أرقام"] };
+    const hi = rows.findIndex(r => r.some(c => H.emp.map(norm).includes(norm(c))));
+    if (hi < 0) return msg("s-msg", "err", "ما لقيت عمود «الرقم الوظيفي». استخدم النموذج.");
+    const col = {}; rows[hi].forEach((c, i) => { for (const [k, al] of Object.entries(H)) if (al.map(norm).includes(norm(c)) && !(k in col)) col[k] = i; });
+    const items = [], bad = [];
+    rows.slice(hi + 1).forEach((r, j) => {
+      const emp = digits(r[col.emp]), name = String(r[col.name] ?? "").trim(), pin = pinOf(r[col.phone]);
+      if (!emp && !name) return;
+      if (/مثال|example/i.test(name)) return;
+      if (!emp || !pin) return bad.push(`سطر ${hi + j + 2}: ${!emp ? "الرقم الوظيفي فاضي" : "الجوال ناقص"}`);
+      items.push({ emp_id: emp, name, pin, active: true });
+    });
+    if (items.length) { const { error } = await sb.from("staff").upsert(items); if (error) throw error; }
+    msg("s-msg", bad.length ? "err" : "ok", `انضاف أو تحدّث ${items.length} طبيب.` + (bad.length ? `<ul>${bad.slice(0, 8).map(b => `<li>${b}</li>`).join("")}</ul>` : ""));
+    loadStaff();
+  } catch { msg("s-msg", "err", "ما قدرت أقرأ الملف. تأكد إنه Excel أو CSV."); }
+  e.target.value = "";
 };
 </script>
 </body>

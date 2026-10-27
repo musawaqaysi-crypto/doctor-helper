@@ -220,8 +220,10 @@ const T = {
       all:"الكل", mine:"روابطي", personal:"رابط شخصي", name:"اسم الموقع", add:"إضافة", del:"حذف",
       res:"مقيم", spec:"أخصائي", cons:"استشاري", oth:"مناوب",
       live:"مباشر · محدّث الساعة", cached:"بدون اتصال · آخر نسخة محفوظة الساعة", demo:"بيانات تجريبية للعرض فقط · ما فيه جدول مرفوع حالياً",
-      lock_t:"رمز الأطباء", lock_p:"اكتب الرمز اللي أعطاك إياه المشرف. يطلب منك مرة وحدة بس.", lock_b:"دخول",
-      lock_bad:"الرمز غير صحيح أو تغيّر. اطلب الرمز الجديد من المشرف.", lock_net:"ما فيه اتصال. حاول مرة ثانية.",
+      lock_t:"دخول الأطباء", lock_p:"يطلب منك مرة وحدة بس على هذا الجوال.", lock_b:"دخول",
+      emp:"الرقم الوظيفي", pin:"آخر 4 أرقام من جوالك", hello:"أهلاً", signout:"خروج",
+      lock_bad:"الرقم الوظيفي أو آخر 4 أرقام غير صحيحة.", lock_locked:"محاولات كثيرة. انتظر 15 دقيقة وحاول مرة ثانية.",
+      lock_inactive:"حسابك موقوف. راجع المشرف.", lock_net:"ما فيه اتصال. حاول مرة ثانية.",
       empty_now:"ما فيه مناوبين مسجلين لهذا الوقت.",
       nobody:"ما فيه أحد مسجّل لهذا المستوى", doctors:"أطباء", call:"اتصال", copy:"نسخ الرقم",
       none:"ما فيه نتائج لهذا البحث",
@@ -232,8 +234,10 @@ const T = {
       all:"All", mine:"My links", personal:"Personal link", name:"Site name", add:"Add", del:"Delete",
       res:"Resident", spec:"Specialist", cons:"Consultant", oth:"On duty",
       live:"Live · updated at", cached:"Offline · last saved copy at", demo:"Demo data for preview only · no roster uploaded yet",
-      lock_t:"Doctors' code", lock_p:"Enter the code your administrator gave you. You only need it once.", lock_b:"Enter",
-      lock_bad:"Wrong or changed code. Ask your administrator for the new one.", lock_net:"No connection. Try again.",
+      lock_t:"Doctor sign-in", lock_p:"You only need to do this once on this phone.", lock_b:"Sign in",
+      emp:"Employee number", pin:"Last 4 digits of your mobile", hello:"Hello", signout:"Sign out",
+      lock_bad:"Employee number or last 4 digits are incorrect.", lock_locked:"Too many attempts. Wait 15 minutes and try again.",
+      lock_inactive:"Your access is paused. Contact the administrator.", lock_net:"No connection. Try again.",
       empty_now:"No one is listed on call right now.",
       nobody:"No one listed at this level", doctors:"doctors", call:"Call", copy:"Copy number",
       none:"No results for this search",
@@ -397,40 +401,48 @@ function groupNow(rows, fetchedAt){
   return {at: fetchedAt, depts: Object.keys(by).sort((a, b) => a.localeCompare(b, "ar")).map(dept => ({dept, rows: by[dept]}))};
 }
 
-let lockMsg = "";
+// Arabic-Indic digits typed on Arabic keyboards become Latin, so ٠١٢٣ matches 0123.
+const digits = s => String(s ?? "").trim().replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/\s+/g, "");
+let lockMsg = "", me = "";
+function signOut(){ ["dh-emp", "dh-pin", "dh-rows", "dh-me"].forEach(k => store.set(k, null)); lockMsg = ""; loadDuty(); }
 async function loadDuty(){
   if (!CFG.url) { duty = DEMO; dutySrc = "demo"; return render(); }
-  const code = store.get("dh-code", "");
-  const saved = store.get("dh-rows", null);
-  if (!code) { duty = {at: "", depts: []}; dutySrc = "locked"; return render(); }
+  const emp = store.get("dh-emp", null), pin = store.get("dh-pin", null), saved = store.get("dh-rows", null);
+  me = store.get("dh-me", "") || "";
+  if (!emp || !pin) { duty = {at: "", depts: []}; dutySrc = "locked"; return render(); }
   if (saved) { duty = groupNow(saved.rows, saved.at); dutySrc = "cached"; render(); }
   try {
     const now = new Date(), y = new Date(now); y.setDate(y.getDate() - 1);
     const ctl = new AbortController(); setTimeout(() => ctl.abort(), 10000);
     const r = await fetch(`${CFG.url}/rest/v1/rpc/get_duty`, {method: "POST", signal: ctl.signal, cache: "no-store",
       headers: {"Content-Type": "application/json", apikey: CFG.anonKey, Authorization: `Bearer ${CFG.anonKey}`},
-      body: JSON.stringify({p_code: code, p_from: ymd(y), p_to: ymd(now)})});
-    if (r.status === 401 || r.status === 403) {
-      store.set("dh-code", ""); store.set("dh-rows", null);
-      duty = {at: "", depts: []}; dutySrc = "locked"; lockMsg = "lock_bad"; return render();
-    }
+      body: JSON.stringify({p_emp: emp, p_pin: pin, p_from: ymd(y), p_to: ymd(now)})});
     if (!r.ok) throw new Error(r.status);
-    const rows = await r.json(), at = hm(now);
-    store.set("dh-rows", {rows, at});
-    duty = groupNow(rows, at); dutySrc = "live"; render();
+    const d = await r.json();
+    if (!d.ok) {
+      ["dh-pin", "dh-rows"].forEach(k => store.set(k, null));
+      duty = {at: "", depts: []}; dutySrc = "locked"; lockMsg = "lock_" + (d.reason || "bad"); return render();
+    }
+    const at = hm(now);
+    me = d.name || ""; store.set("dh-me", me);
+    store.set("dh-rows", {rows: d.rows, at});
+    duty = groupNow(d.rows, at); dutySrc = "live"; render();
   } catch {
     if (!saved) { duty = {at: "", depts: []}; dutySrc = "locked"; lockMsg = "lock_net"; render(); }
   }
 }
 
 function renderLock(){
+  const inp = `padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;width:100%`;
   document.getElementById("view").innerHTML = `
     <form class="dept" id="lock" style="padding:18px;display:flex;flex-direction:column;gap:12px">
       <div style="display:flex;gap:12px;align-items:center"><span class="tile">${icon("steth")}</span>
         <span class="txt"><b>${t("lock_t")}</b><span class="sub">${t("lock_p")}</span></span></div>
-      <input class="search-in" id="lock-code" type="password" autocomplete="off" required dir="ltr"
-        style="padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit">
-      ${lockMsg ? `<p class="sub" style="margin:0;color:var(--alert)">${t(lockMsg)}</p>` : ""}
+      <label class="sub" for="lock-emp">${t("emp")}</label>
+      <input id="lock-emp" inputmode="numeric" autocomplete="username" required dir="ltr" style="${inp}" value="${esc(store.get("dh-emp", "") || "")}">
+      <label class="sub" for="lock-pin">${t("pin")}</label>
+      <input id="lock-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" required dir="ltr" style="${inp};letter-spacing:.4em">
+      ${lockMsg ? `<p class="sub" style="margin:0;color:var(--alert)">${t(lockMsg) || t("lock_bad")}</p>` : ""}
       <button class="lang" style="justify-content:center;background:var(--accent);color:var(--accent-ink);border:0;padding:12px">${t("lock_b")}</button>
     </form>`;
   return 1;
@@ -438,7 +450,8 @@ function renderLock(){
 document.addEventListener("submit", e => {
   if (e.target.id !== "lock") return;
   e.preventDefault();
-  store.set("dh-code", document.getElementById("lock-code").value.trim());
+  store.set("dh-emp", digits(document.getElementById("lock-emp").value));
+  store.set("dh-pin", digits(document.getElementById("lock-pin").value));
   lockMsg = ""; loadDuty();
 });
 
@@ -454,7 +467,8 @@ function renderChips(){
 function renderOncall(q){
   if (dutySrc === "locked") return renderLock();
   const st =dutySrc === "demo" ? `<p class="status demo"><span class="dot"></span>${t("demo")}</p>`
-    : `<p class="status"><span class="dot"></span>${t(dutySrc)} <bdi>${esc(duty.at)}</bdi></p>`;
+    : `<p class="status"><span class="dot"></span>${me ? `${t("hello")} ${esc(me)} · ` : ""}${t(dutySrc)} <bdi>${esc(duty.at)}</bdi>
+        <button id="signout" style="margin-inline-start:auto;border:0;background:none;color:var(--muted);font:inherit;text-decoration:underline;cursor:pointer">${t("signout")}</button></p>`;
   let hits = 0;
   const cards = duty.depts.filter(d => cat === "all" || cat === d.dept).map(d => {
     const rows = d.rows.map(r => ({...r, lv: levelOf(r)}));
@@ -561,6 +575,7 @@ document.addEventListener("click", e => {
     const a = store.get("dh-custom-links", []); a.splice(+d.dataset.i, 1); store.set("dh-custom-links", a); render();
     return;
   }
+  if (e.target.id === "signout") return signOut();
   const c = e.target.closest("[data-copy]");
   if (c){
     const done = () => { c.innerHTML = icon("check"); setTimeout(() => c.innerHTML = icon("copy"), 1500); };
