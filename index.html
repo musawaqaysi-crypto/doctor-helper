@@ -4,231 +4,516 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>مساعد الطبيب</title>
-<meta name="description" content="روابط وبروتوكولات سريعة لأطباء الطوارئ">
-<meta name="theme-color" content="#0f766e">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="المناوبون حسب التخصص، ومراجع وبروتوكولات سريعة للأطباء">
+<meta name="theme-color" content="#0b6e63">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="مساعد الطبيب">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
+/* Layout: a clinical pocket card — compact header, one search, list rows, bottom tab bar (on-call / references / protocols) */
 :root{
-  --bg:#f4f6f8; --card:#ffffff; --text:#14202b; --muted:#5b6b7a; --line:#e2e8ee;
-  --brand:#0f766e; --brand-soft:#e3f3f1; --danger:#c2410c; --danger-soft:#fdeee5;
+  --bg:#f2f5f4; --surface:#ffffff; --ink:#10201d; --muted:#5d6e6a; --line:#dde5e2;
+  --accent:#0b6e63; --accent-ink:#ffffff; --accent-soft:#e1efec;
+  --alert:#b42318; --alert-soft:#fcebe9;
+  --res:#2f6fb0; --res-soft:#e6eff8; --spec:#8a5a00; --spec-soft:#f8efdc; --cons:#0b6e63; --cons-soft:#e1efec;
+  --f-body:"IBM Plex Sans Arabic","IBM Plex Sans",-apple-system,"SF Arabic",Tahoma,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --gutter-l:max(16px,env(safe-area-inset-left,0px));
+  --gutter-r:max(16px,env(safe-area-inset-right,0px));
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0e1419; --card:#172129; --text:#e7edf2; --muted:#93a3b1; --line:#253340;
-    --brand:#2dd4bf; --brand-soft:#123a37; --danger:#fb923c; --danger-soft:#3a2216;
+    --bg:#0b1312; --surface:#131d1b; --ink:#e4edea; --muted:#8ea29d; --line:#22302d;
+    --accent:#3cc4b0; --accent-ink:#04211d; --accent-soft:#11302b;
+    --alert:#f97066; --alert-soft:#371614;
+    --res:#7cb4ec; --res-soft:#15283b; --spec:#e6b45a; --spec-soft:#33270f; --cons:#3cc4b0; --cons-soft:#11302b;
+    color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0e1419; --card:#172129; --text:#e7edf2; --muted:#93a3b1; --line:#253340;
-  --brand:#2dd4bf; --brand-soft:#123a37; --danger:#fb923c; --danger-soft:#3a2216;
+  --bg:#0b1312; --surface:#131d1b; --ink:#e4edea; --muted:#8ea29d; --line:#22302d;
+  --accent:#3cc4b0; --accent-ink:#04211d; --accent-soft:#11302b;
+  --alert:#f97066; --alert-soft:#371614;
+  --res:#7cb4ec; --res-soft:#15283b; --spec:#e6b45a; --spec-soft:#33270f; --cons:#3cc4b0; --cons-soft:#11302b;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);
-  font-family:-apple-system,"SF Arabic","Segoe UI",Tahoma,sans-serif;line-height:1.6;
-  padding-bottom:calc(76px + env(safe-area-inset-bottom))}
-header{background:var(--brand);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 14px}
-:root[data-theme="dark"] header{color:#06201d}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) header{color:#06201d}}
-header h1{margin:0;font-size:1.3rem}
-header p{margin:2px 0 0;font-size:.85rem;opacity:.85}
-main{max-width:720px;margin:0 auto;padding:16px}
-.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;
-  background:var(--card);color:var(--text);font-size:1rem;margin-bottom:14px}
-.nidaa{display:flex;align-items:center;gap:12px;background:var(--danger-soft);color:var(--danger);
-  border:1px solid var(--danger);border-radius:14px;padding:14px;text-decoration:none;font-weight:700;margin-bottom:18px}
-.nidaa small{display:block;font-weight:400;color:var(--muted)}
-h2{font-size:1rem;color:var(--muted);margin:18px 4px 8px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.link{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;
-  padding:12px;text-decoration:none;color:var(--text);position:relative}
-.link b{display:block;font-size:.95rem}
-.link span{display:block;font-size:.78rem;color:var(--muted)}
-.link .del{position:absolute;top:6px;left:8px;border:0;background:none;color:var(--muted);font-size:1rem;cursor:pointer}
-details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
-summary{padding:14px;font-weight:700;cursor:pointer;list-style:none}
-summary::-webkit-details-marker{display:none}
-summary::before{content:"◂ ";color:var(--brand)}
-details[open] summary::before{content:"▾ "}
-details .body{padding:0 16px 14px;font-size:.92rem}
-details ul{margin:0;padding-inline-start:20px}
-details li{margin-bottom:4px}
-.dose{direction:ltr;unicode-bidi:isolate;font-weight:600;color:var(--brand)}
-.note{font-size:.8rem;color:var(--muted);background:var(--brand-soft);border-radius:10px;padding:10px 12px;margin-top:14px}
-.add{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:10px}
-.add input{padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font-size:.9rem;min-width:0}
-.add button,.tabs button{border:0;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;padding:10px 14px;font-size:.9rem}
-nav.tabs{position:fixed;bottom:0;inset-inline:0;background:var(--card);border-top:1px solid var(--line);
-  display:flex;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));justify-content:center}
-.tabs button{flex:1;max-width:220px;background:var(--bg);color:var(--muted)}
-.tabs button[aria-selected="true"]{background:var(--brand);color:#fff}
-:root[data-theme="dark"] .tabs button[aria-selected="true"]{color:#06201d}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tabs button[aria-selected="true"],
-  :root:not([data-theme="light"]) .add button{color:#06201d}}
-[hidden]{display:none!important}
-.empty{color:var(--muted);text-align:center;padding:20px}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.65 var(--f-body);
+  padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+[dir="ltr"] .flip{transform:scaleX(-1)}
+.wrap{max-width:720px;margin:0 auto;padding-left:var(--gutter-l);padding-right:var(--gutter-r)}
+
+header{background:var(--surface);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+header .wrap{display:flex;align-items:center;gap:12px;padding-block:14px}
+.mark{width:40px;height:40px;border-radius:11px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none}
+.mark svg.i{width:24px;height:24px;stroke-width:2.2}
+header .ttl{flex:1;min-width:0}
+header h1{margin:0;font-size:1.12rem;font-weight:700;line-height:1.3}
+header p{margin:0;font-size:.8rem;color:var(--muted)}
+.lang{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;
+  font:600 .8rem var(--f-body);cursor:pointer;display:flex;align-items:center;gap:6px}
+.lang svg.i{width:16px;height:16px}
+
+main.wrap{padding-block:16px;display:flex;flex-direction:column;gap:14px}
+.search{position:relative;display:block}
+.search svg.i{position:absolute;top:50%;inset-inline-start:14px;transform:translateY(-50%);color:var(--muted)}
+.search input{width:100%;padding-block:13px;padding-inline:44px 14px;border:1px solid var(--line);border-radius:12px;
+  background:var(--surface);color:var(--ink);font:inherit}
+.search input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;
+  margin-left:calc(-1 * var(--gutter-l));margin-right:calc(-1 * var(--gutter-r));
+  padding-left:var(--gutter-l);padding-right:var(--gutter-r)}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;
+  padding:6px 14px;font:500 .85rem var(--f-body);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.status{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted)}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.status.demo .dot{background:var(--spec);box-shadow:0 0 0 3px var(--spec-soft)}
+.status bdi{font-family:var(--f-data)}
+
+.group{display:flex;flex-direction:column;gap:8px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.group h2{margin:2px 2px 0;font-size:.78rem;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;text-decoration:none;color:var(--ink)}
+.row + .row{border-top:1px solid var(--line)}
+a.row:hover{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
+.row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tile{width:38px;height:38px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.txt{min-width:0;flex:1}
+.row b{display:block;font-weight:600;font-size:.95rem;line-height:1.35}
+.row .sub{display:block;font-size:.8rem;color:var(--muted);line-height:1.4}
+.dom{display:block;font-family:var(--f-data);font-size:.72rem;color:var(--muted);opacity:.8}
+.ext,.del{color:var(--muted)}
+.del{border:0;background:none;padding:6px;cursor:pointer;border-radius:8px}
+.del:hover{color:var(--alert);background:var(--alert-soft)}
+
+/* on-call */
+.dept{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.dept-h{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.dept-h b{flex:1;font-weight:700}
+.dept-h .count{font-size:.75rem;color:var(--muted)}
+.doc{display:flex;align-items:center;gap:12px;padding:11px 14px}
+.doc + .doc{border-top:1px solid var(--line)}
+.lvl{flex:none;width:86px;text-align:center;font-size:.72rem;font-weight:600;border-radius:7px;padding:3px 0}
+.lvl.res{background:var(--res-soft);color:var(--res)}
+.lvl.spec{background:var(--spec-soft);color:var(--spec)}
+.lvl.cons{background:var(--cons-soft);color:var(--cons)}
+.lvl.oth{background:var(--bg);color:var(--muted)}
+.doc .txt b{font-weight:600;font-size:.93rem}
+.doc .sub{font-size:.78rem;color:var(--muted)}
+.doc .sub bdi{font-family:var(--f-data)}
+.call{display:flex;gap:6px}
+.call a,.call button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--accent);
+  display:grid;place-items:center;cursor:pointer;text-decoration:none}
+.call svg.i{width:17px;height:17px}
+.none{padding:12px 14px;color:var(--muted);font-size:.85rem}
+
+.add{display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;padding:12px 14px;border-top:1px solid var(--line)}
+.add input{min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit;font-size:.85rem}
+.add button{border:0;border-radius:9px;background:var(--accent);color:var(--accent-ink);padding:0 12px;display:grid;place-items:center;cursor:pointer}
+@media (max-width:420px){.add{grid-template-columns:1fr auto}.add input[name=u]{grid-column:1/-1;grid-row:2}}
+
+details.proto{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+details.proto summary{display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;list-style:none}
+details.proto summary::-webkit-details-marker{display:none}
+details.proto .tile{background:var(--alert-soft);color:var(--alert)}
+details.proto summary b{display:block;font-weight:600}
+details.proto summary .sub{font-size:.8rem;color:var(--muted)}
+details.proto .chev{transition:transform .2s;color:var(--muted)}
+details.proto[open] .chev{transform:rotate(-90deg)}
+[dir="ltr"] details.proto[open] .chev{transform:scaleX(-1) rotate(-90deg)}
+.targets{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
+.target{font-size:.75rem;border-radius:6px;padding:2px 8px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.target bdi{font-family:var(--f-data);color:var(--ink)}
+.steps{margin:0;padding-block:4px 16px;padding-inline:34px 14px;font-size:.9rem;display:flex;flex-direction:column;gap:6px}
+.steps li::marker{color:var(--accent);font-weight:600}
+.dose{font-family:var(--f-data);font-size:.82rem;direction:ltr;unicode-bidi:isolate;background:var(--accent-soft);color:var(--accent);padding:0 5px;border-radius:5px;white-space:nowrap}
+.note{display:flex;gap:10px;font-size:.8rem;color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:12px 14px;margin:0}
+.empty{color:var(--muted);text-align:center;padding:28px 0;margin:0}
+
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:color-mix(in srgb,var(--surface) 92%,transparent);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));padding-left:var(--gutter-l);padding-right:var(--gutter-r)}
+nav.tabs div{max-width:460px;margin:0 auto;display:flex;gap:6px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;color:var(--muted);
+  font:500 .75rem var(--f-body);padding:6px;border-radius:10px;cursor:pointer}
+.tab[aria-selected="true"]{color:var(--accent);background:var(--accent-soft)}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M2 12h4l2-5 4 10 2-5h8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15v3M8 18h.01M12 18h.01"/></symbol>
+  <symbol id="i-pill" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></symbol>
+  <symbol id="i-ecg" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/><path d="M3.5 12H9l1-2 2 4 2-6 1.5 4h5"/></symbol>
+  <symbol id="i-cap" viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2.5 9 2.5 12 0v-5M22 10v6"/></symbol>
+  <symbol id="i-gov" viewBox="0 0 24 24"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l8 5H4z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.8 5.2"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  <symbol id="i-steth" viewBox="0 0 24 24"><path d="M5 3H4a1 1 0 0 0-1 1v5a6 6 0 0 0 12 0V4a1 1 0 0 0-1-1h-1"/><path d="M9 15v1a5 5 0 0 0 10 0v-3"/><circle cx="19" cy="11" r="2"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M12 8v4M12 16h.01"/></symbol>
+  <symbol id="i-thermo" viewBox="0 0 24 24"><path d="M14 4v10.5a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2Z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 17 17 7M17 17V7H7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+</svg>
+
 <header>
-  <h1>🩺 مساعد الطبيب</h1>
-  <p>روابط وبروتوكولات سريعة للطوارئ</p>
+  <div class="wrap">
+    <div class="mark"><svg class="i"><use href="#i-logo"/></svg></div>
+    <div class="ttl"><h1 data-t="app"></h1><p data-t="tag"></p></div>
+    <button class="lang" id="lang"><svg class="i"><use href="#i-globe"/></svg><span></span></button>
+  </div>
 </header>
 
-<main>
-  <input class="search" id="q" type="search" placeholder="ابحث… مثل ECG، جرعة، sepsis" autocomplete="off">
-
-  <a class="nidaa" href="https://drmusawa.com/codes/" target="_blank" rel="noopener">
-    <span style="font-size:1.6rem">🚨</span>
-    <span>نداء — المناوبين والسياسات<small>جداول المناوبات حسب التخصص وسياسات المستشفى</small></span>
-  </a>
-
-  <section id="tab-links"></section>
-  <section id="tab-protocols" hidden></section>
-  <p class="empty" id="empty" hidden>ما فيه نتائج</p>
+<main class="wrap">
+  <label class="search">
+    <svg class="i"><use href="#i-search"/></svg>
+    <input id="q" type="search" autocomplete="off">
+  </label>
+  <div class="chips" id="chips" role="group"></div>
+  <section id="view" class="stack"></section>
+  <p class="empty" id="empty" hidden></p>
 </main>
 
-<nav class="tabs" role="tablist">
-  <button role="tab" aria-selected="true" data-tab="links">🔗 الروابط</button>
-  <button role="tab" aria-selected="false" data-tab="protocols">📋 البروتوكولات</button>
+<nav class="tabs">
+  <div role="tablist">
+    <button class="tab" role="tab" data-tab="oncall"><svg class="i"><use href="#i-steth"/></svg><span data-t="t_oncall"></span></button>
+    <button class="tab" role="tab" data-tab="links"><svg class="i"><use href="#i-link"/></svg><span data-t="t_links"></span></button>
+    <button class="tab" role="tab" data-tab="protocols"><svg class="i"><use href="#i-clip"/></svg><span data-t="t_protocols"></span></button>
+  </div>
 </nav>
 
 <script>
+// Live rosters come from the hospital roster system; until it answers, the last copy on this phone, else marked examples.
+const API = "https://drmusawa.com/codes/api/duty/now";
+
+const T = {
+  ar:{app:"مساعد الطبيب", tag:"المناوبون والمراجع والبروتوكولات", other:"English",
+      t_oncall:"المناوبون", t_links:"المراجع", t_protocols:"البروتوكولات",
+      q_oncall:"ابحث عن تخصص أو اسم طبيب…", q_links:"ابحث: ECG، جرعة، أشعة…", q_protocols:"ابحث: sepsis، stroke…",
+      all:"الكل", mine:"روابطي", personal:"رابط شخصي", name:"اسم الموقع", add:"إضافة", del:"حذف",
+      res:"مقيم", spec:"أخصائي", cons:"استشاري", oth:"مناوب",
+      live:"مباشر · محدّث الساعة", cached:"آخر نسخة محفوظة · الساعة", demo:"بيانات تجريبية للعرض فقط · ما فيه جدول مرفوع حالياً",
+      nobody:"ما فيه أحد مسجّل لهذا المستوى", doctors:"أطباء", call:"اتصال", copy:"نسخ الرقم",
+      none:"ما فيه نتائج لهذا البحث",
+      disclaimer:"مرجع سريع مبني على الإرشادات العالمية، ولا يغني عن سياسة المستشفى والتقييم السريري."},
+  en:{app:"Doctor's Assistant", tag:"On-call, references and protocols", other:"عربي",
+      t_oncall:"On-call", t_links:"References", t_protocols:"Protocols",
+      q_oncall:"Search a specialty or doctor…", q_links:"Search: ECG, dose, imaging…", q_protocols:"Search: sepsis, stroke…",
+      all:"All", mine:"My links", personal:"Personal link", name:"Site name", add:"Add", del:"Delete",
+      res:"Resident", spec:"Specialist", cons:"Consultant", oth:"On duty",
+      live:"Live · updated at", cached:"Last saved copy · at", demo:"Demo data for preview only · no roster uploaded yet",
+      nobody:"No one listed at this level", doctors:"doctors", call:"Call", copy:"Copy number",
+      none:"No results for this search",
+      disclaimer:"Quick reference based on international guidelines. It does not replace hospital policy or clinical judgement."},
+};
+
+const DEPT_EN = {"الباطنة":"Internal Medicine","الجراحة العامة":"General Surgery","العظام":"Orthopedics","الأطفال":"Pediatrics",
+  "النساء والولادة":"Obstetrics & Gynecology","القلب":"Cardiology","الأعصاب":"Neurology","الطوارئ":"Emergency Medicine",
+  "الأشعة":"Radiology","التخدير":"Anesthesia","العناية المركزة":"Intensive Care","المسالك البولية":"Urology",
+  "الأنف والأذن والحنجرة":"ENT","العيون":"Ophthalmology","جراحة المخ والأعصاب":"Neurosurgery","الجلدية":"Dermatology","النفسية":"Psychiatry"};
+
+const DEMO = {at:"—", depts:[
+  ["الباطنة",[["res","د. أحمد (مثال)"],["spec","د. سارة (مثال)"],["cons","د. خالد (مثال)"]]],
+  ["الجراحة العامة",[["res","د. فهد (مثال)"],["spec","د. نورة (مثال)"],["cons","د. عبدالله (مثال)"]]],
+  ["الأطفال",[["res","د. ريم (مثال)"],["cons","د. سلمان (مثال)"]]],
+  ["النساء والولادة",[["res","د. هند (مثال)"],["spec","د. منى (مثال)"],["cons","د. لطيفة (مثال)"]]],
+  ["العظام",[["spec","د. ماجد (مثال)"],["cons","د. يوسف (مثال)"]]],
+].map(([dept, docs]) => ({dept, rows: docs.map(([l,n]) => ({level:l, name:n, phone:"0500000000", shift:"", start:"07:00", end:"07:00", note:""}))}))};
+
 const LINKS = [
-  {cat:"مراجع", items:[
-    ["UpToDate","المرجع السريري الشامل","https://www.uptodate.com"],
-    ["Medscape","أمراض وأدوية","https://reference.medscape.com"],
-    ["WikEM","مرجع طب الطوارئ","https://wikem.org"],
-    ["NICE","الإرشادات البريطانية","https://www.nice.org.uk/guidance"],
+  {id:"ref", cat:{ar:"مراجع سريرية",en:"Clinical references"}, items:[
+    ["UpToDate",{ar:"المرجع السريري الشامل",en:"Comprehensive clinical reference"},"https://www.uptodate.com","book"],
+    ["Medscape",{ar:"الأمراض والأدوية",en:"Diseases and drugs"},"https://reference.medscape.com","book"],
+    ["WikEM",{ar:"مرجع طب الطوارئ",en:"Emergency medicine wiki"},"https://wikem.org","book"],
+    ["NICE Guidance",{ar:"الإرشادات البريطانية",en:"UK clinical guidelines"},"https://www.nice.org.uk/guidance","book"],
   ]},
-  {cat:"حاسبات وأدوية", items:[
-    ["MDCalc","حاسبات وقواعد سريرية","https://www.mdcalc.com"],
-    ["BNF","دليل الأدوية والجرعات","https://bnf.nice.org.uk"],
-    ["Drug Interactions","فحص التداخلات الدوائية","https://www.drugs.com/drug_interactions.html"],
-    ["SFDA","هيئة الغذاء والدواء","https://www.sfda.gov.sa"],
+  {id:"calc", cat:{ar:"حاسبات وأدوية",en:"Calculators & drugs"}, items:[
+    ["MDCalc",{ar:"حاسبات وقواعد سريرية",en:"Clinical calculators and scores"},"https://www.mdcalc.com","calc"],
+    ["BNF",{ar:"دليل الأدوية والجرعات",en:"Drug doses and formulary"},"https://bnf.nice.org.uk","pill"],
+    ["Drug Interactions",{ar:"فحص التداخلات الدوائية",en:"Interaction checker"},"https://www.drugs.com/drug_interactions.html","pill"],
+    ["SFDA",{ar:"هيئة الغذاء والدواء",en:"Saudi Food & Drug Authority"},"https://www.sfda.gov.sa","pill"],
   ]},
-  {cat:"ECG وأشعة", items:[
-    ["LITFL ECG","مكتبة تخطيط القلب","https://litfl.com/ecg-library/"],
-    ["Radiopaedia","حالات وصور أشعة","https://radiopaedia.org"],
-    ["POCUS Atlas","الألتراساوند عند السرير","https://www.thepocusatlas.com"],
+  {id:"img", cat:{ar:"تخطيط وأشعة",en:"ECG & imaging"}, items:[
+    ["LITFL ECG Library",{ar:"مكتبة تخطيط القلب",en:"ECG library"},"https://litfl.com/ecg-library/","ecg"],
+    ["Radiopaedia",{ar:"حالات وصور أشعة",en:"Radiology cases"},"https://radiopaedia.org","scan"],
+    ["The POCUS Atlas",{ar:"الألتراساوند عند السرير",en:"Point-of-care ultrasound"},"https://www.thepocusatlas.com","scan"],
   ]},
-  {cat:"إنعاش وتعليم", items:[
-    ["AHA CPR","إرشادات الإنعاش ACLS/PALS","https://cpr.heart.org"],
-    ["EMCrit","العناية الحرجة بالطوارئ","https://emcrit.org"],
-    ["ALiEM","تعليم طب الطوارئ","https://www.aliem.com"],
+  {id:"resus", cat:{ar:"إنعاش وتعليم",en:"Resuscitation & learning"}, items:[
+    ["AHA CPR & ECC",{ar:"إرشادات ACLS وPALS",en:"ACLS and PALS guidelines"},"https://cpr.heart.org","heart"],
+    ["EMCrit",{ar:"العناية الحرجة في الطوارئ",en:"Emergency critical care"},"https://emcrit.org","heart"],
+    ["ALiEM",{ar:"تعليم طب الطوارئ",en:"Emergency medicine education"},"https://www.aliem.com","cap"],
   ]},
-  {cat:"جهات سعودية", items:[
-    ["وزارة الصحة","moh.gov.sa","https://www.moh.gov.sa"],
-    ["الهيئة السعودية للتخصصات الصحية","scfhs.org.sa","https://www.scfhs.org.sa"],
+  {id:"sa", cat:{ar:"جهات سعودية",en:"Saudi authorities"}, items:[
+    [{ar:"وزارة الصحة",en:"Ministry of Health"},{ar:"الأدلة والسياسات الوطنية",en:"National guidelines and policies"},"https://www.moh.gov.sa","gov"],
+    [{ar:"الهيئة السعودية للتخصصات الصحية",en:"Saudi Commission for Health Specialties"},{ar:"التصنيف والتدريب",en:"Licensing and training"},"https://www.scfhs.org.sa","gov"],
   ]},
 ];
 
 const PROTOCOLS = [
-  {t:"🫀 توقف القلب (ACLS — بالغين)", k:"cardiac arrest cpr acls vf vt pea asystole", b:`
-<ul>
-<li>ضغطات صدرية 100–120/دقيقة، عمق 5–6 سم، أقل مقاطعة ممكنة، 30:2 قبل تأمين مجرى الهواء</li>
-<li><b>VF / pVT:</b> صدمة ← CPR دقيقتين ← صدمة ← <span class="dose">Adrenaline 1 mg IV</span> ← صدمة ← <span class="dose">Amiodarone 300 mg</span> ثم <span class="dose">150 mg</span></li>
-<li><b>PEA / Asystole:</b> <span class="dose">Adrenaline 1 mg</span> بأسرع وقت، وتكرر كل 3–5 دقائق</li>
-<li>ابحث عن الأسباب القابلة للعكس: 5H و5T</li>
-<li>بعد عودة النبض: SpO₂ 92–98%، MAP ≥ 65، ECG 12 lead</li>
-</ul>`},
-  {t:"🐝 الحساسية المفرطة (Anaphylaxis)", k:"anaphylaxis allergy adrenaline epinephrine", b:`
-<ul>
-<li><span class="dose">Adrenaline IM 1:1000</span> في الفخذ الخارجي: بالغ <span class="dose">0.5 mg</span>، طفل <span class="dose">0.01 mg/kg (max 0.5 mg)</span></li>
-<li>تكرر كل 5 دقائق إذا ما فيه تحسن</li>
-<li>أكسجين، استلقاء ورفع الرجلين، سوائل <span class="dose">20 mL/kg</span> إذا فيه هبوط ضغط</li>
-<li>مضادات الهيستامين والستيرويد علاج مساعد فقط ولا تؤخر الأدرينالين</li>
-<li>راقب احتمال التفاعل الثاني (biphasic)</li>
-</ul>`},
-  {t:"🦠 تعفن الدم (Sepsis — الساعة الأولى)", k:"sepsis septic shock lactate antibiotics", b:`
-<ul>
-<li>Lactate، وأعده إذا كان أعلى من 2</li>
-<li>مزارع الدم قبل المضاد الحيوي</li>
-<li>مضاد حيوي واسع خلال ساعة</li>
-<li>سوائل كريستالويد <span class="dose">30 mL/kg</span> إذا فيه هبوط ضغط أو Lactate ≥ 4</li>
-<li>Noradrenaline إذا استمر الهبوط، والهدف MAP ≥ 65</li>
-</ul>`},
-  {t:"🧠 الجلطة الدماغية الحادة", k:"stroke cva thrombolysis alteplase tenecteplase", b:`
-<ul>
-<li>فحص السكر فوراً، وCT خلال 20–25 دقيقة من الوصول</li>
-<li>Door-to-needle ≤ 60 دقيقة، ونافذة الإذابة حتى 4.5 ساعات من آخر وقت كان فيه طبيعي</li>
-<li><span class="dose">Alteplase 0.9 mg/kg (max 90 mg)</span>: 10% دفعة، والباقي على ساعة</li>
-<li>أو <span class="dose">Tenecteplase 0.25 mg/kg (max 25 mg)</span> دفعة واحدة</li>
-<li>الضغط قبل الإذابة أقل من 185/110، وبعدها أقل من 180/105</li>
-<li>فكّر في الاستئصال الميكانيكي إذا فيه انسداد شريان كبير (LVO)</li>
-</ul>`},
-  {t:"❤️ احتشاء القلب STEMI", k:"stemi mi acs chest pain aspirin pci", b:`
-<ul>
-<li>ECG خلال 10 دقائق من الوصول</li>
-<li><span class="dose">Aspirin 162–325 mg</span> مضغ</li>
-<li>Door-to-balloon ≤ 90 دقيقة، وإذا ما فيه قسطرة متاحة: إذابة خلال 30 دقيقة</li>
-<li>تفعيل فريق القسطرة حسب سياسة المستشفى</li>
-</ul>`},
+  {ic:"heart", k:"cardiac arrest cpr acls vf vt pea asystole توقف",
+   t:{ar:"توقف القلب — ACLS بالغين",en:"Cardiac arrest — adult ACLS"}, s:"VF / pVT / PEA / Asystole",
+   tg:[[{ar:"ضغطات",en:"Compressions"},"100–120/min"],[{ar:"تقييم الإيقاع",en:"Rhythm check"},"q2 min"]],
+   b:{ar:[
+     `ضغطات بعمق 5–6 سم، وأقل مقاطعة ممكنة، و30:2 قبل تأمين مجرى الهواء`,
+     `<b>VF / pVT:</b> صدمة، ثم CPR دقيقتين، ثم صدمة و<span class="dose">Adrenaline 1 mg IV</span>، ثم صدمة و<span class="dose">Amiodarone 300 mg</span>، والجرعة الثانية <span class="dose">150 mg</span>`,
+     `<b>PEA / Asystole:</b> <span class="dose">Adrenaline 1 mg</span> بأسرع وقت، وتكرر كل 3–5 دقائق`,
+     `ابحث عن الأسباب القابلة للعكس (5H و5T)`,
+     `بعد عودة النبض: SpO₂ بين 92 و98%، وMAP ≥ 65، وECG 12 lead`],
+    en:[
+     `Compressions 5–6 cm deep, minimal interruptions, 30:2 until an advanced airway is placed`,
+     `<b>VF / pVT:</b> shock, CPR 2 min, shock + <span class="dose">Adrenaline 1 mg IV</span>, shock + <span class="dose">Amiodarone 300 mg</span>, second dose <span class="dose">150 mg</span>`,
+     `<b>PEA / Asystole:</b> <span class="dose">Adrenaline 1 mg</span> as soon as possible, repeat every 3–5 min`,
+     `Look for reversible causes (5 Hs and 5 Ts)`,
+     `After ROSC: SpO₂ 92–98%, MAP ≥ 65, 12-lead ECG`]}},
+  {ic:"shield", k:"anaphylaxis allergy adrenaline epinephrine حساسية",
+   t:{ar:"الحساسية المفرطة",en:"Anaphylaxis"}, s:"Anaphylaxis",
+   tg:[[{ar:"تكرار الأدرينالين",en:"Repeat adrenaline"},"q5 min"]],
+   b:{ar:[
+     `<span class="dose">Adrenaline IM 1:1000</span> في الجهة الخارجية للفخذ: البالغ <span class="dose">0.5 mg</span>، والطفل <span class="dose">0.01 mg/kg (max 0.5)</span>`,
+     `أكسجين، ومدد المريض وارفع رجليه، وسوائل <span class="dose">20 mL/kg</span> إذا الضغط هابط`,
+     `مضادات الهيستامين والستيرويد علاج مساعد، ولا تؤخر الأدرينالين`,
+     `راقب احتمال رجوع التفاعل مرة ثانية (biphasic)`],
+    en:[
+     `<span class="dose">Adrenaline IM 1:1000</span> into the anterolateral thigh: adult <span class="dose">0.5 mg</span>, child <span class="dose">0.01 mg/kg (max 0.5)</span>`,
+     `Oxygen, lie flat with legs raised, fluids <span class="dose">20 mL/kg</span> if hypotensive`,
+     `Antihistamines and steroids are adjuncts only and must not delay adrenaline`,
+     `Observe for a biphasic reaction`]}},
+  {ic:"thermo", k:"sepsis septic shock lactate antibiotics تعفن",
+   t:{ar:"تعفن الدم — حزمة الساعة الأولى",en:"Sepsis — hour-1 bundle"}, s:"Sepsis / Septic shock",
+   tg:[[{ar:"المضاد الحيوي",en:"Antibiotics"},"≤ 1 h"],[{ar:"هدف MAP",en:"MAP target"},"≥ 65"]],
+   b:{ar:[
+     `Lactate، وأعده إذا طلع أعلى من 2`,
+     `مزارع الدم قبل المضاد الحيوي`,
+     `مضاد حيوي واسع المدى خلال ساعة`,
+     `<span class="dose">30 mL/kg</span> كريستالويد إذا فيه هبوط ضغط أو Lactate ≥ 4`,
+     `Noradrenaline إذا استمر هبوط الضغط بعد السوائل`],
+    en:[
+     `Measure lactate; repeat if above 2`,
+     `Blood cultures before antibiotics`,
+     `Broad-spectrum antibiotics within 1 hour`,
+     `<span class="dose">30 mL/kg</span> crystalloid for hypotension or lactate ≥ 4`,
+     `Noradrenaline if hypotension persists after fluids`]}},
+  {ic:"bolt", k:"stroke cva thrombolysis alteplase tenecteplase جلطة",
+   t:{ar:"الجلطة الدماغية الحادة",en:"Acute ischemic stroke"}, s:"Acute ischemic stroke",
+   tg:[["CT","≤ 25 min"],["Door-to-needle","≤ 60 min"],[{ar:"النافذة",en:"Window"},"4.5 h"]],
+   b:{ar:[
+     `افحص السكر فوراً، واحسب الوقت من آخر لحظة كان فيها طبيعي`,
+     `<span class="dose">Alteplase 0.9 mg/kg (max 90 mg)</span>: 10% دفعة واحدة، والباقي على ساعة`,
+     `أو <span class="dose">Tenecteplase 0.25 mg/kg (max 25 mg)</span> دفعة واحدة`,
+     `الضغط قبل الإذابة أقل من 185/110، وبعدها أقل من 180/105`,
+     `قيّم المريض للقسطرة الدماغية إذا فيه انسداد شريان كبير (LVO)`],
+    en:[
+     `Check glucose immediately; time from last known well`,
+     `<span class="dose">Alteplase 0.9 mg/kg (max 90 mg)</span>: 10% bolus, the rest over 1 hour`,
+     `Or <span class="dose">Tenecteplase 0.25 mg/kg (max 25 mg)</span> single bolus`,
+     `BP below 185/110 before lysis and below 180/105 after`,
+     `Assess for thrombectomy if large vessel occlusion (LVO)`]}},
+  {ic:"ecg", k:"stemi mi acs chest pain aspirin pci احتشاء",
+   t:{ar:"احتشاء عضلة القلب",en:"ST-elevation MI"}, s:"STEMI",
+   tg:[["ECG","≤ 10 min"],["Door-to-balloon","≤ 90 min"],[{ar:"الإذابة",en:"Lysis"},"≤ 30 min"]],
+   b:{ar:[
+     `<span class="dose">Aspirin 162–325 mg</span> يمضغه المريض`,
+     `فعّل فريق القسطرة حسب سياسة المستشفى`,
+     `إذا ما فيه قسطرة متاحة في الوقت المطلوب، أعطِ الإذابة`],
+    en:[
+     `<span class="dose">Aspirin 162–325 mg</span> chewed`,
+     `Activate the cath lab team per hospital policy`,
+     `If PCI is not available in time, give fibrinolysis`]}},
 ];
 
-const LS = "dh-custom-links";
-function loadCustom(){ try{ return JSON.parse(localStorage.getItem(LS)) || []; }catch{ return []; } }
-function saveCustom(a){ try{ localStorage.setItem(LS, JSON.stringify(a)); }catch{} }
-const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+let lang = store.get("dh-lang", "ar"), tab = store.get("dh-tab", "oncall"), cat = "all", duty = null, dutySrc = "demo";
+
+const L = v => (v && typeof v === "object" && !Array.isArray(v)) ? (v[lang] ?? v.ar) : v;
+const t = k => T[lang][k];
+const icon = (n, cls = "") => `<svg class="i ${cls}"><use href="#i-${n}"/></svg>`;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+const has = (q, ...parts) => !q || parts.join(" ").toLowerCase().includes(q);
+
+const LEVELS = ["res", "spec", "cons"];
+function levelOf(r){
+  if (LEVELS.includes(r.level)) return r.level;
+  const s = `${r.shift} ${r.note}`.toLowerCase();
+  if (/استشار|consult/.test(s)) return "cons";
+  if (/أخصائ|اخصائ|specialist|registrar|نائب/.test(s)) return "spec";
+  if (/مقيم|resident|\br\d\b|امتياز|intern/.test(s)) return "res";
+  return "oth";
+}
+const deptName = d => lang === "en" ? (DEPT_EN[d] || d) : d;
+
+async function loadDuty(){
+  duty = store.get("dh-duty", null);
+  dutySrc = duty ? "cached" : "demo";
+  if (!duty) duty = DEMO;
+  render();
+  try {
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(API, {signal: ctl.signal, cache: "no-store"});
+    const d = await r.json();
+    if (!Array.isArray(d.depts) || !d.depts.length) return;
+    duty = d; dutySrc = "live"; store.set("dh-duty", d); render();
+  } catch {}
+}
+
+function renderChips(){
+  const el = document.getElementById("chips");
+  let cats = [];
+  if (tab === "links") cats = [["all", t("all")], ...LINKS.map(g => [g.id, L(g.cat)]), ["mine", t("mine")]];
+  if (tab === "oncall") cats = [["all", t("all")], ...duty.depts.map(d => [d.dept, deptName(d.dept)])];
+  el.hidden = !cats.length;
+  el.innerHTML = cats.map(([id, n]) => `<button class="chip" data-cat="${esc(id)}" aria-pressed="${id === cat}">${esc(n)}</button>`).join("");
+}
+
+function renderOncall(q){
+  const st = dutySrc === "demo" ? `<p class="status demo"><span class="dot"></span>${t("demo")}</p>`
+    : `<p class="status"><span class="dot"></span>${t(dutySrc)} <bdi>${esc(duty.at)}</bdi></p>`;
+  let hits = 0;
+  const cards = duty.depts.filter(d => cat === "all" || cat === d.dept).map(d => {
+    const rows = d.rows.map(r => ({...r, lv: levelOf(r)}));
+    const deptHit = has(q, d.dept, deptName(d.dept));
+    const shown = rows.filter(r => deptHit || has(q, r.name));
+    if (!shown.length) return "";
+    hits += shown.length;
+    const order = [...LEVELS, "oth"].filter(l => l !== "oth" || shown.some(r => r.lv === "oth"));
+    const body = order.map(l => {
+      const docs = shown.filter(r => r.lv === l);
+      if (!docs.length) return q ? "" : `<div class="doc"><span class="lvl ${l}">${t(l)}</span><span class="txt sub">${t("nobody")}</span></div>`;
+      return docs.map(r => `<div class="doc"><span class="lvl ${l}">${t(l)}</span>
+        <span class="txt"><b>${esc(r.name)}</b>${r.start ? `<span class="sub"><bdi>${esc(r.start)}–${esc(r.end)}</bdi>${r.shift ? " · " + esc(r.shift) : ""}</span>` : ""}</span>
+        ${r.phone ? `<span class="call"><button data-copy="${esc(r.phone)}" aria-label="${t("copy")}">${icon("copy")}</button>
+          <a href="tel:${esc(r.phone)}" aria-label="${t("call")} ${esc(r.name)}">${icon("phone")}</a></span>` : ""}</div>`).join("");
+    }).join("");
+    return `<div class="dept"><div class="dept-h"><span class="tile">${icon("steth")}</span><b>${esc(deptName(d.dept))}</b>
+      <span class="count">${shown.length} ${t("doctors")}</span></div>${body}</div>`;
+  }).join("");
+  document.getElementById("view").innerHTML = st + cards;
+  return hits;
+}
+
+function linkRow([n, d, u, ic], i){
+  return `<a class="row" href="${esc(u)}" target="_blank" rel="noopener">
+    <span class="tile">${icon(ic)}</span>
+    <span class="txt"><b>${esc(L(n))}</b><span class="sub">${esc(L(d))}</span><bdi class="dom">${esc(host(u))}</bdi></span>
+    ${i !== undefined ? `<button class="del" data-i="${i}" aria-label="${t("del")}">${icon("x")}</button>` : icon("out", "ext flip")}
+  </a>`;
+}
 
 function renderLinks(q){
-  const custom = loadCustom();
-  const groups = [...LINKS];
-  groups.push({cat:"روابطي", items:custom.map((c,i)=>[c.n,"رابط شخصي",c.u,i]), mine:true});
+  const mine = store.get("dh-custom-links", []);
+  const groups = [...LINKS, {id:"mine", cat:{ar:T.ar.mine, en:T.en.mine}, mine:true,
+    items: mine.map(c => [c.n, {ar:T.ar.personal, en:T.en.personal}, c.u, "link"])}];
   let html = "", hits = 0;
   for (const g of groups){
-    const items = g.items.filter(([n,d,u]) => !q || (n+" "+d+" "+u+" "+g.cat).toLowerCase().includes(q));
+    if (cat !== "all" && cat !== g.id) continue;
+    const items = g.items.map((it, i) => [it, i]).filter(([[n, d, u]]) =>
+      has(q, L(n), L(d), u, L(g.cat), n.ar || "", n.en || "", d.ar || "", d.en || ""));
     if (!items.length && !(g.mine && !q)) continue;
     hits += items.length;
-    html += `<h2>${g.cat}</h2><div class="grid">` + items.map(([n,d,u,i]) =>
-      `<a class="link" href="${esc(u)}" target="_blank" rel="noopener"><b>${esc(n)}</b><span>${esc(d)}</span>${
-        i!==undefined?`<button class="del" data-i="${i}" aria-label="حذف">×</button>`:""}</a>`).join("") + `</div>`;
-    if (g.mine && !q) html += `<form class="add" id="add"><input name="n" placeholder="الاسم" required><input name="u" type="url" placeholder="https://…" required dir="ltr"><button>إضافة</button></form>`;
+    html += `<div class="group"><h2>${esc(L(g.cat))}</h2><div class="list">` +
+      items.map(([it, i]) => linkRow(it, g.mine ? i : undefined)).join("") +
+      (g.mine && !q ? `<form class="add" id="add">
+        <input id="add-n" name="n" placeholder="${t("name")}" required>
+        <input id="add-u" name="u" type="url" placeholder="https://" required dir="ltr">
+        <button aria-label="${t("add")}">${icon("plus")}</button></form>` : "") + `</div></div>`;
   }
-  document.getElementById("tab-links").innerHTML = html;
+  document.getElementById("view").innerHTML = html;
   return hits;
 }
 
 function renderProtocols(q){
-  const items = PROTOCOLS.filter(p => !q || (p.t+" "+p.k+" "+p.b).toLowerCase().includes(q));
-  document.getElementById("tab-protocols").innerHTML = items.map(p =>
-    `<details${q?" open":""}><summary>${p.t}</summary><div class="body">${p.b}</div></details>`).join("") +
-    (items.length ? `<p class="note">⚠️ مرجع سريع مبني على الإرشادات العالمية، ولا يغني عن سياسة المستشفى والتقييم السريري.</p>` : "");
+  const items = PROTOCOLS.filter(p => has(q, p.t.ar, p.t.en, p.s, p.k, p.b.ar.join(" "), p.b.en.join(" ")));
+  document.getElementById("view").innerHTML = items.map(p => `
+    <details class="proto"${q ? " open" : ""}>
+      <summary><span class="tile">${icon(p.ic)}</span>
+        <span class="txt"><b>${L(p.t)}</b><span class="sub">${p.s}</span></span>${icon("back", "chev")}</summary>
+      <div class="targets">${p.tg.map(([l, v]) => `<span class="target">${L(l)} <bdi>${v}</bdi></span>`).join("")}</div>
+      <ol class="steps">${L(p.b).map(x => `<li>${x}</li>`).join("")}</ol>
+    </details>`).join("") +
+    (items.length ? `<p class="note">${icon("info")}<span>${t("disclaimer")}</span></p>` : "");
   return items.length;
 }
 
-let tab = "links";
 function render(){
-  const q = document.getElementById("q").value.trim().toLowerCase();
-  const n = tab === "links" ? renderLinks(q) : renderProtocols(q);
-  document.getElementById("tab-links").hidden = tab !== "links";
-  document.getElementById("tab-protocols").hidden = tab !== "protocols";
-  document.getElementById("empty").hidden = !(q && !n);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.title = t("app");
+  document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
+  document.querySelector("#lang span").textContent = t("other");
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
+  const qi = document.getElementById("q");
+  qi.placeholder = t("q_" + tab); qi.setAttribute("aria-label", t("q_" + tab));
+  renderChips();
+  const q = qi.value.trim().toLowerCase();
+  const n = tab === "oncall" ? renderOncall(q) : tab === "links" ? renderLinks(q) : renderProtocols(q);
+  const e = document.getElementById("empty");
+  e.textContent = t("none"); e.hidden = !(q && !n);
 }
 
 document.getElementById("q").addEventListener("input", render);
-document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
-  tab = b.dataset.tab;
-  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
-  render();
+document.getElementById("lang").onclick = () => { lang = lang === "ar" ? "en" : "ar"; store.set("dh-lang", lang); render(); };
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+  tab = b.dataset.tab; cat = "all"; store.set("dh-tab", tab);
+  document.getElementById("q").value = ""; render();
+});
+document.getElementById("chips").addEventListener("click", e => {
+  const c = e.target.closest(".chip"); if (!c) return;
+  cat = c.dataset.cat; render();
 });
 document.addEventListener("submit", e => {
   if (e.target.id !== "add") return;
   e.preventDefault();
   const f = new FormData(e.target);
-  saveCustom([...loadCustom(), {n:f.get("n"), u:f.get("u")}]);
+  store.set("dh-custom-links", [...store.get("dh-custom-links", []), {n: f.get("n"), u: f.get("u")}]);
   render();
 });
 document.addEventListener("click", e => {
-  const d = e.target.closest(".del"); if (!d) return;
-  e.preventDefault();
-  const a = loadCustom(); a.splice(+d.dataset.i, 1); saveCustom(a); render();
+  const d = e.target.closest(".del");
+  if (d){
+    e.preventDefault();
+    const a = store.get("dh-custom-links", []); a.splice(+d.dataset.i, 1); store.set("dh-custom-links", a); render();
+    return;
+  }
+  const c = e.target.closest("[data-copy]");
+  if (c){
+    const done = () => { c.innerHTML = icon("check"); setTimeout(() => c.innerHTML = icon("copy"), 1500); };
+    navigator.clipboard?.writeText(c.dataset.copy).then(done, () => {});
+  }
 });
 
-render();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+if (!T[lang]) lang = "ar";
+if (!["oncall", "links", "protocols"].includes(tab)) tab = "oncall";
+loadDuty();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
 </html>
