@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>لوحة المشرف — مساعد الطبيب</title>
+<meta name="theme-color" content="#0b6e63">
+<meta name="robots" content="noindex">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one column of task cards — upload a roster, review a day, change the doctors' code */
+:root{
+  --bg:#f2f5f4; --surface:#ffffff; --ink:#10201d; --muted:#5d6e6a; --line:#dde5e2;
+  --accent:#0b6e63; --accent-ink:#ffffff; --accent-soft:#e1efec;
+  --alert:#b42318; --alert-soft:#fcebe9; --ok:#067647; --ok-soft:#e3f6ec;
+  --res:#2f6fb0; --res-soft:#e6eff8; --spec:#8a5a00; --spec-soft:#f8efdc; --cons:#0b6e63; --cons-soft:#e1efec;
+  --f-body:"IBM Plex Sans Arabic",-apple-system,"SF Arabic",Tahoma,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b1312; --surface:#131d1b; --ink:#e4edea; --muted:#8ea29d; --line:#22302d;
+    --accent:#3cc4b0; --accent-ink:#04211d; --accent-soft:#11302b;
+    --alert:#f97066; --alert-soft:#371614; --ok:#47cd89; --ok-soft:#0f2d1f;
+    --res:#7cb4ec; --res-soft:#15283b; --spec:#e6b45a; --spec-soft:#33270f; --cons:#3cc4b0; --cons-soft:#11302b;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.6 var(--f-body)}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{background:var(--surface);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+header .wrap{display:flex;align-items:center;gap:12px;padding-block:14px}
+.mark{width:40px;height:40px;border-radius:11px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none}
+.mark svg.i{width:24px;height:24px;stroke-width:2.2}
+header .ttl{flex:1;min-width:0}
+header h1{margin:0;font-size:1.1rem;font-weight:700}
+header p{margin:0;font-size:.8rem;color:var(--muted)}
+main.wrap{padding-block:18px 40px;display:flex;flex-direction:column;gap:16px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.card-h{display:flex;align-items:center;gap:12px}
+.card-h .tile{width:40px;height:40px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.card-h h2{margin:0;font-size:1rem;font-weight:700}
+.card-h p{margin:0;font-size:.82rem;color:var(--muted)}
+.steps{display:flex;gap:8px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin:0;padding:0;list-style:none}
+.steps li{background:var(--bg);border-radius:8px;padding:4px 10px}
+.steps b{color:var(--accent);font-family:var(--f-data)}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px}
+.field label{font-size:.78rem;color:var(--muted);font-weight:500}
+input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);width:100%}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.btn{font:600 .9rem var(--f-body);border:0;border-radius:10px;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center;white-space:nowrap}
+.btn svg.i{width:18px;height:18px}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--alert-soft);color:var(--alert)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,input[type=file]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.drop{border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop b{color:var(--ink)}
+.drop input{display:none}
+
+.msg{border-radius:10px;padding:10px 12px;font-size:.88rem;display:flex;gap:8px;align-items:flex-start}
+.msg.ok{background:var(--ok-soft);color:var(--ok)}
+.msg.err{background:var(--alert-soft);color:var(--alert)}
+.msg.info{background:var(--accent-soft);color:var(--ink)}
+.msg ul{margin:4px 0 0;padding-inline-start:18px}
+
+.summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.sum{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.sum b{display:block}
+.sum span{font-size:.78rem;color:var(--muted)}
+.sum bdi{font-family:var(--f-data)}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{padding:8px 10px;text-align:start;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.75rem;color:var(--muted);font-weight:600;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--f-data);direction:ltr;text-align:right}
+
+.lvl{display:inline-block;font-size:.72rem;font-weight:600;border-radius:7px;padding:2px 8px}
+.lvl.res{background:var(--res-soft);color:var(--res)}
+.lvl.spec{background:var(--spec-soft);color:var(--spec)}
+.lvl.cons{background:var(--cons-soft);color:var(--cons)}
+.lvl.oth{background:var(--bg);color:var(--muted)}
+
+.dept{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.dept-h{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);font-weight:600}
+.dept-h span{margin-inline-start:auto;font-size:.75rem;color:var(--muted);font-weight:400}
+.doc{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--line)}
+.doc .txt{flex:1;min-width:0}
+.doc .sub{font-size:.78rem;color:var(--muted)}
+.doc .sub bdi{font-family:var(--f-data)}
+.icon-btn{border:0;background:none;color:var(--muted);padding:6px;border-radius:8px;cursor:pointer}
+.icon-btn:hover{color:var(--alert);background:var(--alert-soft)}
+.empty{color:var(--muted);text-align:center;padding:18px;font-size:.9rem;margin:0}
+.login{max-width:420px;margin:40px auto}
+[hidden]{display:none!important}
+@media (max-width:520px){.row .btn{flex:1}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M2 12h4l2-5 4 10 2-5h8"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+</svg>
+
+<header>
+  <div class="wrap">
+    <div class="mark"><svg class="i"><use href="#i-logo"/></svg></div>
+    <div class="ttl"><h1>لوحة المشرف</h1><p>مساعد الطبيب · جداول المناوبات</p></div>
+    <a class="btn ghost" href="./"><svg class="i"><use href="#i-eye"/></svg>التطبيق</a>
+    <button class="btn ghost" id="logout" hidden><svg class="i"><use href="#i-out"/></svg>خروج</button>
+  </div>
+</header>
+
+<!-- sign in -->
+<main class="wrap" id="v-login" hidden>
+  <section class="card login">
+    <div class="card-h"><span class="tile"><svg class="i"><use href="#i-mail"/></svg></span>
+      <div><h2>دخول المشرف</h2><p>يوصلك رابط دخول على إيميلك</p></div></div>
+    <form id="f-email" class="row">
+      <div class="field"><label for="email">الإيميل</label><input id="email" type="email" required dir="ltr" autocomplete="email"></div>
+      <button class="btn primary">أرسل رابط الدخول</button>
+    </form>
+    <div id="login-msg"></div>
+  </section>
+</main>
+
+<main class="wrap" id="v-setup" hidden>
+  <section class="card login"><div class="msg err"><svg class="i"><use href="#i-alert"/></svg>
+    <span>اللوحة لسا ما ارتبطت بقاعدة البيانات. أكمل الإعداد أول.</span></div></section>
+</main>
+
+<!-- dashboard -->
+<main class="wrap" id="v-admin" hidden>
+
+  <section class="card">
+    <div class="card-h"><span class="tile"><svg class="i"><use href="#i-upload"/></svg></span>
+      <div><h2>رفع جدول مناوبات</h2><p>ملف Excel أو CSV. يستبدل جدول نفس القسم في نفس الأيام.</p></div></div>
+    <ol class="steps">
+      <li><b>1</b> حمّل النموذج</li><li><b>2</b> عبّه</li><li><b>3</b> ارفعه وراجع</li><li><b>4</b> احفظ</li>
+    </ol>
+    <div class="row"><button class="btn ghost" id="tpl"><svg class="i"><use href="#i-download"/></svg>تحميل النموذج</button></div>
+    <label class="drop" id="drop">
+      <svg class="i" style="width:28px;height:28px"><use href="#i-upload"/></svg>
+      <b>اختر الملف أو اسحبه هنا</b><span>xlsx · xls · csv</span>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv">
+    </label>
+    <div id="up-msg"></div>
+    <div id="preview" hidden>
+      <div class="summary" id="up-sum"></div>
+      <div class="tablewrap"><table id="up-table"></table></div>
+      <div class="row">
+        <button class="btn primary" id="up-save"><svg class="i"><use href="#i-check"/></svg>احفظ الجدول</button>
+        <button class="btn ghost" id="up-cancel">إلغاء</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-h"><span class="tile"><svg class="i"><use href="#i-cal"/></svg></span>
+      <div><h2>مناوبات يوم</h2><p>راجع، أضف طبيب، أو احذف.</p></div></div>
+    <div class="row">
+      <div class="field" style="max-width:220px"><label for="day">اليوم</label><input id="day" type="date"></div>
+      <button class="btn ghost" id="day-prev">اليوم السابق</button>
+      <button class="btn ghost" id="day-next">اليوم التالي</button>
+    </div>
+    <div id="day-list"></div>
+    <form id="f-add" class="card" style="background:var(--bg);padding:14px">
+      <div class="row">
+        <div class="field"><label for="a-dept">القسم</label><input id="a-dept" list="depts" required></div>
+        <div class="field"><label for="a-level">المستوى</label>
+          <select id="a-level"><option value="res">مقيم</option><option value="spec">أخصائي</option><option value="cons">استشاري</option><option value="oth">مناوب</option></select></div>
+        <div class="field"><label for="a-name">الاسم</label><input id="a-name" required></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="a-phone">الجوال</label><input id="a-phone" inputmode="tel" dir="ltr"></div>
+        <div class="field"><label for="a-start">من</label><input id="a-start" type="time"></div>
+        <div class="field"><label for="a-end">إلى</label><input id="a-end" type="time"></div>
+        <button class="btn primary"><svg class="i"><use href="#i-plus"/></svg>إضافة لهذا اليوم</button>
+      </div>
+    </form>
+    <datalist id="depts"></datalist>
+  </section>
+
+  <section class="card">
+    <div class="card-h"><span class="tile"><svg class="i"><use href="#i-key"/></svg></span>
+      <div><h2>رمز دخول الأطباء</h2><p id="code-info">الرمز اللي يكتبه الطبيب أول مرة يفتح التطبيق</p></div></div>
+    <form id="f-code" class="row">
+      <div class="field"><label for="code">رمز جديد (6 خانات أو أكثر)</label><input id="code" minlength="6" required dir="ltr" autocomplete="off"></div>
+      <button class="btn primary">تغيير الرمز</button>
+    </form>
+    <div id="code-msg"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script>
+const C = window.DH_CONFIG || {};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const icon = n => `<svg class="i"><use href="#i-${n}"/></svg>`;
+const LV = {res:"مقيم", spec:"أخصائي", cons:"استشاري", oth:"مناوب"};
+const ORDER = {res:0, spec:1, cons:2, oth:3};
+const msg = (el, kind, html) => { $(el).innerHTML = html ? `<div class="msg ${kind}">${icon(kind === "ok" ? "check" : "alert")}<div>${html}</div></div>` : ""; };
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const show = v => ["v-login", "v-setup", "v-admin"].forEach(x => $(x).hidden = x !== v);
+
+if (!C.url || !C.anonKey) { show("v-setup"); throw new Error("not configured"); }
+const sb = supabase.createClient(C.url, C.anonKey);
+
+// ---------- sign in ----------
+let email = "";
+$("f-email").onsubmit = async e => {
+  e.preventDefault();
+  email = $("email").value.trim();
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: location.href.split("#")[0] } });
+  if (error) return msg("login-msg", "err", "هذا الإيميل غير مسجّل كمشرف، أو صار خطأ في الإرسال. تأكد من الإيميل وحاول مرة ثانية.");
+  msg("login-msg", "info", "أرسلنا رابط دخول على إيميلك. افتحه من نفس الجهاز ونفس المتصفح. الرابط صالح لساعة.");
+};
+$("logout").onclick = () => sb.auth.signOut();
+
+sb.auth.onAuthStateChange(async (_ev, session) => {
+  $("logout").hidden = !session;
+  if (!session) return show("v-login");
+  const { data } = await sb.rpc("is_admin");
+  if (!data) { await sb.auth.signOut(); msg("login-msg", "err", "هذا الحساب ما عنده صلاحية مشرف."); return; }
+  show("v-admin");
+  loadDay(); loadCodeInfo();
+});
+
+// ---------- parsing ----------
+const HEAD = {
+  dept: ["القسم", "التخصص", "dept", "department", "specialty"],
+  day: ["التاريخ", "اليوم", "date", "day"],
+  level: ["المستوى", "الدرجة", "الدور", "level", "grade", "role"],
+  name: ["الاسم", "اسم الطبيب", "الطبيب", "name", "doctor"],
+  phone: ["الجوال", "رقم الجوال", "الهاتف", "phone", "mobile"],
+  start_t: ["من", "البداية", "start", "from"],
+  end_t: ["إلى", "الى", "النهاية", "end", "to"],
+  note: ["ملاحظة", "ملاحظات", "note", "notes"],
+};
+const norm = s => String(s ?? "").trim().toLowerCase().replace(/[\s_\-:]+/g, "");
+function level(s){
+  s = String(s ?? "").toLowerCase();
+  if (/استشار|consult/.test(s)) return "cons";
+  if (/أخصائ|اخصائ|إخصائ|specialist|registrar|نائب/.test(s)) return "spec";
+  if (/مقيم|resident|^r\d|امتياز|intern/.test(s)) return "res";
+  return s.trim() ? null : "oth";
+}
+function parseDay(v){
+  if (typeof v === "number") { const p = XLSX.SSF.parse_date_code(v); return p ? `${p.y}-${String(p.m).padStart(2, "0")}-${String(p.d).padStart(2, "0")}` : null; }
+  const s = String(v ?? "").trim();
+  let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return null;
+}
+function parseTime(v){
+  if (v === "" || v == null) return "";
+  if (typeof v === "number") { const mins = Math.round((v % 1) * 1440); return `${String(Math.floor(mins / 60) % 24).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`; }
+  const m = String(v).trim().match(/^(\d{1,2})(?::(\d{2}))?/);
+  return m && +m[1] < 24 ? `${m[1].padStart(2, "0")}:${m[2] || "00"}` : null;
+}
+function parseSheet(rows){
+  const hi = rows.findIndex(r => r.some(c => Object.values(HEAD).flat().map(norm).includes(norm(c))));
+  if (hi < 0) return { items: [], errors: ["ما لقيت عناوين الأعمدة. استخدم النموذج."] };
+  const col = {};
+  rows[hi].forEach((c, i) => { for (const [k, al] of Object.entries(HEAD)) if (al.map(norm).includes(norm(c)) && !(k in col)) col[k] = i; });
+  const miss = ["dept", "day", "name"].filter(k => !(k in col));
+  if (miss.length) return { items: [], errors: [`أعمدة ناقصة: ${miss.map(k => HEAD[k][0]).join("، ")}`] };
+  const items = [], errors = [];
+  rows.slice(hi + 1).forEach((r, j) => {
+    const get = k => k in col ? r[col[k]] : "";
+    if (r.every(c => String(c ?? "").trim() === "")) return;
+    const n = hi + j + 2, name = String(get("name") ?? "").trim(), dept = String(get("dept") ?? "").trim();
+    if (!name || !dept) return errors.push(`سطر ${n}: القسم أو الاسم فاضي`);
+    if (/^\(?مثال\)?|example/i.test(name)) return;
+    const day = parseDay(get("day")); if (!day) return errors.push(`سطر ${n}: التاريخ غير مفهوم (${esc(get("day"))})`);
+    const lv = level(get("level")); if (!lv) return errors.push(`سطر ${n}: المستوى «${esc(get("level"))}» غير معروف. اكتب مقيم أو أخصائي أو استشاري`);
+    const st = parseTime(get("start_t")), en = parseTime(get("end_t"));
+    if (st === null || en === null) return errors.push(`سطر ${n}: الوقت غير مفهوم`);
+    items.push({ dept, day, level: lv, name, phone: String(get("phone") ?? "").replace(/[^\d+]/g, ""), start_t: st, end_t: en, note: String(get("note") ?? "").trim() });
+  });
+  return { items, errors };
+}
+
+// ---------- upload ----------
+let pending = [];
+$("tpl").onclick = () => {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ["القسم", "التاريخ", "المستوى", "الاسم", "الجوال", "من", "إلى", "ملاحظة"],
+    ["الباطنة", "2026-11-01", "مقيم", "(مثال) د. أحمد", "0500000000", "07:00", "15:00", "اشطب أسطر المثال"],
+    ["الباطنة", "2026-11-01", "أخصائي", "(مثال) د. سارة", "0500000000", "07:00", "07:00", "24 ساعة"],
+    ["الباطنة", "2026-11-01", "استشاري", "(مثال) د. خالد", "0500000000", "", "", "الوقت اختياري"],
+  ]);
+  ws["!cols"] = [16, 12, 10, 24, 14, 8, 8, 24].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] };
+  XLSX.utils.book_append_sheet(wb, ws, "المناوبات");
+  XLSX.writeFile(wb, "نموذج-جدول-المناوبات.xlsx");
+};
+async function readFile(f){
+  try {
+    const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" });
+    const { items, errors } = parseSheet(rows);
+    pending = items;
+    const errHtml = errors.length ? `<b>${errors.length} سطر فيه مشكلة وما راح ينحفظ:</b><ul>${errors.slice(0, 8).map(e => `<li>${e}</li>`).join("")}</ul>${errors.length > 8 ? "…" : ""}` : "";
+    if (!items.length) { $("preview").hidden = true; return msg("up-msg", "err", errHtml || "الملف فاضي."); }
+    msg("up-msg", errors.length ? "err" : "info", errHtml || `قرأت <b>${items.length}</b> طبيب. راجع وبعدين احفظ.`);
+    const by = {};
+    items.forEach(i => { const g = by[i.dept] ||= { n: 0, a: i.day, b: i.day }; g.n++; if (i.day < g.a) g.a = i.day; if (i.day > g.b) g.b = i.day; });
+    $("up-sum").innerHTML = Object.entries(by).map(([d, g]) => `<div class="sum"><b>${esc(d)}</b><span>${g.n} سطر · <bdi>${g.a}</bdi> ← <bdi>${g.b}</bdi></span></div>`).join("");
+    $("up-table").innerHTML = `<tr><th>القسم</th><th>التاريخ</th><th>المستوى</th><th>الاسم</th><th>الجوال</th><th>من</th><th>إلى</th></tr>` +
+      items.slice(0, 40).map(i => `<tr><td>${esc(i.dept)}</td><td class="num">${i.day}</td><td><span class="lvl ${i.level}">${LV[i.level]}</span></td><td>${esc(i.name)}</td><td class="num">${esc(i.phone)}</td><td class="num">${i.start_t}</td><td class="num">${i.end_t}</td></tr>`).join("") +
+      (items.length > 40 ? `<tr><td colspan="7" style="color:var(--muted)">و${items.length - 40} سطر ثاني…</td></tr>` : "");
+    $("preview").hidden = false;
+  } catch { msg("up-msg", "err", "ما قدرت أقرأ الملف. تأكد إنه Excel أو CSV."); }
+}
+$("file").onchange = e => e.target.files[0] && readFile(e.target.files[0]);
+const drop = $("drop");
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && readFile(e.dataTransfer.files[0]); };
+$("up-cancel").onclick = () => { pending = []; $("preview").hidden = true; $("file").value = ""; msg("up-msg"); };
+$("up-save").onclick = async () => {
+  const b = $("up-save"); b.disabled = true;
+  try {
+    const by = {};
+    pending.forEach(i => (by[i.dept] ||= []).push(i));
+    for (const [dept, rows] of Object.entries(by)) {
+      const days = rows.map(r => r.day).sort();
+      let { error } = await sb.from("duty").delete().eq("dept", dept).gte("day", days[0]).lte("day", days.at(-1));
+      if (error) throw error;
+      ({ error } = await sb.from("duty").insert(rows));
+      if (error) throw error;
+    }
+    msg("up-msg", "ok", `انحفظ <b>${pending.length}</b> طبيب في ${Object.keys(by).length} قسم. الأطباء يشوفونه الحين.`);
+    pending = []; $("preview").hidden = true; $("file").value = "";
+    loadDay();
+  } catch (e) { msg("up-msg", "err", "ما انحفظ الجدول. تأكد من النت وحاول مرة ثانية."); }
+  b.disabled = false;
+};
+
+// ---------- day view ----------
+$("day").value = iso(new Date());
+$("day").onchange = loadDay;
+const shift = n => { const d = new Date($("day").value + "T12:00"); d.setDate(d.getDate() + n); $("day").value = iso(d); loadDay(); };
+$("day-prev").onclick = () => shift(-1);
+$("day-next").onclick = () => shift(1);
+async function loadDay(){
+  const { data, error } = await sb.from("duty").select("*").eq("day", $("day").value);
+  if (error) return $("day-list").innerHTML = `<p class="empty">ما قدرت أجيب الجدول.</p>`;
+  const by = {};
+  data.sort((a, b) => ORDER[a.level] - ORDER[b.level] || a.name.localeCompare(b.name, "ar")).forEach(r => (by[r.dept] ||= []).push(r));
+  const depts = Object.keys(by).sort((a, b) => a.localeCompare(b, "ar"));
+  $("day-list").innerHTML = depts.length ? `<div style="display:flex;flex-direction:column;gap:10px">` + depts.map(d => `
+    <div class="dept"><div class="dept-h">${esc(d)}<span>${by[d].length} طبيب</span></div>` +
+    by[d].map(r => `<div class="doc"><span class="lvl ${r.level}">${LV[r.level]}</span>
+      <div class="txt">${esc(r.name)}<div class="sub">${r.phone ? `<bdi>${esc(r.phone)}</bdi>` : ""}${r.start_t ? ` · <bdi>${r.start_t}–${r.end_t}</bdi>` : ""}</div></div>
+      <button class="icon-btn" data-del="${r.id}" aria-label="حذف ${esc(r.name)}">${icon("trash")}</button></div>`).join("") + `</div>`).join("") + `</div>`
+    : `<p class="empty">ما فيه مناوبات مسجلة لهذا اليوم.</p>`;
+  const all = await sb.from("duty").select("dept").limit(1000);
+  $("depts").innerHTML = [...new Set((all.data || []).map(r => r.dept))].map(d => `<option value="${esc(d)}">`).join("");
+}
+$("day-list").onclick = async e => {
+  const b = e.target.closest("[data-del]"); if (!b) return;
+  if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.style.color = "var(--alert)"; b.title = "اضغط مرة ثانية للتأكيد"; setTimeout(() => { b.dataset.armed = ""; b.style.color = ""; }, 3000); return; }
+  await sb.from("duty").delete().eq("id", +b.dataset.del);
+  loadDay();
+};
+$("f-add").onsubmit = async e => {
+  e.preventDefault();
+  const { error } = await sb.from("duty").insert({ dept: $("a-dept").value.trim(), day: $("day").value, level: $("a-level").value,
+    name: $("a-name").value.trim(), phone: $("a-phone").value.replace(/[^\d+]/g, ""), start_t: $("a-start").value, end_t: $("a-end").value });
+  if (!error) { $("a-name").value = ""; $("a-phone").value = ""; loadDay(); }
+};
+
+// ---------- doctors' code ----------
+async function loadCodeInfo(){
+  const { data } = await sb.rpc("code_updated_at");
+  $("code-info").textContent = data ? `آخر تغيير: ${new Date(data).toLocaleString("ar-SA-u-nu-latn", { dateStyle: "medium", timeStyle: "short" })}` : "ما فيه رمز للحين. حط رمز عشان الأطباء يقدرون يدخلون.";
+}
+$("f-code").onsubmit = async e => {
+  e.preventDefault();
+  const { error } = await sb.rpc("set_access_code", { p_code: $("code").value.trim() });
+  if (error) return msg("code-msg", "err", "ما تغيّر الرمز. لازم يكون 6 خانات أو أكثر.");
+  msg("code-msg", "ok", "تغيّر الرمز. الأطباء بيطلب منهم الرمز الجديد في المرة الجاية.");
+  $("code").value = ""; loadCodeInfo();
+};
+</script>
+</body>
+</html>

@@ -208,9 +208,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   </div>
 </nav>
 
+<script src="config.js"></script>
 <script>
-// Live rosters come from the hospital roster system; until it answers, the last copy on this phone, else marked examples.
-const API = "https://drmusawa.com/codes/api/duty/now";
+// Live rosters come from the roster database (config.js) behind the doctors' shared code; offline, the last copy on this phone.
+const CFG = window.DH_CONFIG || {};
 
 const T = {
   ar:{app:"مساعد الطبيب", tag:"المناوبون والمراجع والبروتوكولات", other:"English",
@@ -218,7 +219,10 @@ const T = {
       q_oncall:"ابحث عن تخصص أو اسم طبيب…", q_links:"ابحث: ECG، جرعة، أشعة…", q_protocols:"ابحث: sepsis، stroke…",
       all:"الكل", mine:"روابطي", personal:"رابط شخصي", name:"اسم الموقع", add:"إضافة", del:"حذف",
       res:"مقيم", spec:"أخصائي", cons:"استشاري", oth:"مناوب",
-      live:"مباشر · محدّث الساعة", cached:"آخر نسخة محفوظة · الساعة", demo:"بيانات تجريبية للعرض فقط · ما فيه جدول مرفوع حالياً",
+      live:"مباشر · محدّث الساعة", cached:"بدون اتصال · آخر نسخة محفوظة الساعة", demo:"بيانات تجريبية للعرض فقط · ما فيه جدول مرفوع حالياً",
+      lock_t:"رمز الأطباء", lock_p:"اكتب الرمز اللي أعطاك إياه المشرف. يطلب منك مرة وحدة بس.", lock_b:"دخول",
+      lock_bad:"الرمز غير صحيح أو تغيّر. اطلب الرمز الجديد من المشرف.", lock_net:"ما فيه اتصال. حاول مرة ثانية.",
+      empty_now:"ما فيه مناوبين مسجلين لهذا الوقت.",
       nobody:"ما فيه أحد مسجّل لهذا المستوى", doctors:"أطباء", call:"اتصال", copy:"نسخ الرقم",
       none:"ما فيه نتائج لهذا البحث",
       disclaimer:"مرجع سريع مبني على الإرشادات العالمية، ولا يغني عن سياسة المستشفى والتقييم السريري."},
@@ -227,7 +231,10 @@ const T = {
       q_oncall:"Search a specialty or doctor…", q_links:"Search: ECG, dose, imaging…", q_protocols:"Search: sepsis, stroke…",
       all:"All", mine:"My links", personal:"Personal link", name:"Site name", add:"Add", del:"Delete",
       res:"Resident", spec:"Specialist", cons:"Consultant", oth:"On duty",
-      live:"Live · updated at", cached:"Last saved copy · at", demo:"Demo data for preview only · no roster uploaded yet",
+      live:"Live · updated at", cached:"Offline · last saved copy at", demo:"Demo data for preview only · no roster uploaded yet",
+      lock_t:"Doctors' code", lock_p:"Enter the code your administrator gave you. You only need it once.", lock_b:"Enter",
+      lock_bad:"Wrong or changed code. Ask your administrator for the new one.", lock_net:"No connection. Try again.",
+      empty_now:"No one is listed on call right now.",
       nobody:"No one listed at this level", doctors:"doctors", call:"Call", copy:"Copy number",
       none:"No results for this search",
       disclaimer:"Quick reference based on international guidelines. It does not replace hospital policy or clinical judgement."},
@@ -371,19 +378,69 @@ function levelOf(r){
 }
 const deptName = d => lang === "en" ? (DEPT_EN[d] || d) : d;
 
-async function loadDuty(){
-  duty = store.get("dh-duty", null);
-  dutySrc = duty ? "cached" : "demo";
-  if (!duty) duty = DEMO;
-  render();
-  try {
-    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 8000);
-    const r = await fetch(API, {signal: ctl.signal, cache: "no-store"});
-    const d = await r.json();
-    if (!Array.isArray(d.depts) || !d.depts.length) return;
-    duty = d; dutySrc = "live"; store.set("dh-duty", d); render();
-  } catch {}
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const hm = d => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+// A row without times covers its whole date; a shift that ends at or before its start runs past midnight.
+function covers(r, now){
+  const s = new Date(`${r.day}T${r.start_t || "00:00"}`);
+  if (!r.start_t || !r.end_t) return r.day === ymd(now);
+  const e = new Date(`${r.day}T${r.end_t}`);
+  if (e <= s) e.setDate(e.getDate() + 1);
+  return s <= now && now < e;
 }
+
+function groupNow(rows, fetchedAt){
+  const now = new Date(), by = {};
+  rows.filter(r => covers(r, now)).forEach(r => (by[r.dept] ||= []).push(
+    {level: r.level, name: r.name, phone: r.phone, shift: "", start: r.start_t, end: r.end_t, note: r.note}));
+  return {at: fetchedAt, depts: Object.keys(by).sort((a, b) => a.localeCompare(b, "ar")).map(dept => ({dept, rows: by[dept]}))};
+}
+
+let lockMsg = "";
+async function loadDuty(){
+  if (!CFG.url) { duty = DEMO; dutySrc = "demo"; return render(); }
+  const code = store.get("dh-code", "");
+  const saved = store.get("dh-rows", null);
+  if (!code) { duty = {at: "", depts: []}; dutySrc = "locked"; return render(); }
+  if (saved) { duty = groupNow(saved.rows, saved.at); dutySrc = "cached"; render(); }
+  try {
+    const now = new Date(), y = new Date(now); y.setDate(y.getDate() - 1);
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 10000);
+    const r = await fetch(`${CFG.url}/rest/v1/rpc/get_duty`, {method: "POST", signal: ctl.signal, cache: "no-store",
+      headers: {"Content-Type": "application/json", apikey: CFG.anonKey, Authorization: `Bearer ${CFG.anonKey}`},
+      body: JSON.stringify({p_code: code, p_from: ymd(y), p_to: ymd(now)})});
+    if (r.status === 401 || r.status === 403) {
+      store.set("dh-code", ""); store.set("dh-rows", null);
+      duty = {at: "", depts: []}; dutySrc = "locked"; lockMsg = "lock_bad"; return render();
+    }
+    if (!r.ok) throw new Error(r.status);
+    const rows = await r.json(), at = hm(now);
+    store.set("dh-rows", {rows, at});
+    duty = groupNow(rows, at); dutySrc = "live"; render();
+  } catch {
+    if (!saved) { duty = {at: "", depts: []}; dutySrc = "locked"; lockMsg = "lock_net"; render(); }
+  }
+}
+
+function renderLock(){
+  document.getElementById("view").innerHTML = `
+    <form class="dept" id="lock" style="padding:18px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:12px;align-items:center"><span class="tile">${icon("steth")}</span>
+        <span class="txt"><b>${t("lock_t")}</b><span class="sub">${t("lock_p")}</span></span></div>
+      <input class="search-in" id="lock-code" type="password" autocomplete="off" required dir="ltr"
+        style="padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit">
+      ${lockMsg ? `<p class="sub" style="margin:0;color:var(--alert)">${t(lockMsg)}</p>` : ""}
+      <button class="lang" style="justify-content:center;background:var(--accent);color:var(--accent-ink);border:0;padding:12px">${t("lock_b")}</button>
+    </form>`;
+  return 1;
+}
+document.addEventListener("submit", e => {
+  if (e.target.id !== "lock") return;
+  e.preventDefault();
+  store.set("dh-code", document.getElementById("lock-code").value.trim());
+  lockMsg = ""; loadDuty();
+});
 
 function renderChips(){
   const el = document.getElementById("chips");
@@ -395,7 +452,8 @@ function renderChips(){
 }
 
 function renderOncall(q){
-  const st = dutySrc === "demo" ? `<p class="status demo"><span class="dot"></span>${t("demo")}</p>`
+  if (dutySrc === "locked") return renderLock();
+  const st =dutySrc === "demo" ? `<p class="status demo"><span class="dot"></span>${t("demo")}</p>`
     : `<p class="status"><span class="dot"></span>${t(dutySrc)} <bdi>${esc(duty.at)}</bdi></p>`;
   let hits = 0;
   const cards = duty.depts.filter(d => cat === "all" || cat === d.dept).map(d => {
@@ -416,8 +474,8 @@ function renderOncall(q){
     return `<div class="dept"><div class="dept-h"><span class="tile">${icon("steth")}</span><b>${esc(deptName(d.dept))}</b>
       <span class="count">${shown.length} ${t("doctors")}</span></div>${body}</div>`;
   }).join("");
-  document.getElementById("view").innerHTML = st + cards;
-  return hits;
+  document.getElementById("view").innerHTML = st + (cards || (q ? "" : `<p class="empty">${t("empty_now")}</p>`));
+  return hits || (q ? 0 : 1);
 }
 
 function linkRow([n, d, u, ic], i){
