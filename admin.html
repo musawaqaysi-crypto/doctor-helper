@@ -222,6 +222,10 @@ td.num{font-family:var(--f-data);direction:ltr;text-align:right}
   <section class="card">
     <div class="card-h"><span class="tile"><svg class="i"><use href="#i-key"/></svg></span>
       <div><h2>الأطباء المسموح لهم</h2><p>الطبيب يدخل التطبيق برقمه الوظيفي وآخر 4 أرقام من جواله</p></div></div>
+    <div class="row" style="align-items:center;justify-content:space-between;background:var(--bg);border-radius:12px;padding:12px 14px">
+      <div><b id="oa-state">…</b><div style="font-size:.8rem;color:var(--muted)" id="oa-desc"></div></div>
+      <button class="btn ghost" id="oa-btn" disabled>…</button>
+    </div>
     <div class="row">
       <button class="btn ghost" id="s-tpl"><svg class="i"><use href="#i-download"/></svg>نموذج قائمة الأطباء</button>
       <label class="btn ghost" for="s-file" style="cursor:pointer"><svg class="i"><use href="#i-upload"/></svg>رفع قائمة</label>
@@ -599,8 +603,24 @@ $("f-add").onsubmit = async e => {
 // ---------- doctors allowed to sign in ----------
 const digits = s => String(s ?? "").trim().replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/\s+/g, "");
 const pinOf = v => { const d = digits(v).replace(/\D/g, ""); return d.length >= 4 ? d.slice(-4) : null; };
-let staff = [];
+let staff = [], openAccess = null;
+async function loadOpen(){
+  const { data } = await sb.rpc("get_open_access");
+  openAccess = !!data;
+  $("oa-state").textContent = openAccess ? "🔓 التطبيق مفتوح بدون دخول" : "🔒 الدخول بالرقم الوظيفي مفعّل";
+  $("oa-desc").textContent = openAccess ? "أي أحد عنده الرابط يشوف المناوبين وأرقامهم." : "ما يشوف المناوبين إلا الأطباء اللي في القائمة تحت.";
+  $("oa-btn").textContent = openAccess ? "فعّل الدخول بالرقم الوظيفي" : "افتحه بدون دخول";
+  $("oa-btn").className = "btn " + (openAccess ? "primary" : "ghost");
+  $("oa-btn").disabled = false;
+}
+$("oa-btn").onclick = async () => {
+  $("oa-btn").disabled = true;
+  const { error } = await sb.rpc("set_open_access", { p_open: !openAccess });
+  if (error) msg("s-msg", "err", "ما تغيّر. حاول مرة ثانية.");
+  loadOpen();
+};
 async function loadStaff(){
+  loadOpen();
   const { data, error } = await sb.from("staff").select("*").order("name");
   if (error) return $("s-list").innerHTML = `<p class="empty">ما قدرت أجيب القائمة.</p>`;
   staff = data; renderStaff();
