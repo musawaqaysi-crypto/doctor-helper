@@ -157,20 +157,20 @@ td.num{font-family:var(--f-data);direction:ltr;text-align:right}
 
   <section class="card">
     <div class="card-h"><span class="tile"><svg class="i"><use href="#i-upload"/></svg></span>
-      <div><h2>رفع جدول مناوبات</h2><p>Excel أو CSV أو PDF. يستبدل جدول نفس القسم في نفس الأيام.</p></div></div>
+      <div><h2>رفع جدول مناوبات</h2><p>Excel أو Word أو PDF. يستبدل جدول نفس القسم في نفس الأيام.</p></div></div>
     <ol class="steps">
       <li><b>1</b> حمّل النموذج</li><li><b>2</b> عبّه</li><li><b>3</b> ارفعه وراجع</li><li><b>4</b> احفظ</li>
     </ol>
     <div class="row"><button class="btn ghost" id="tpl"><svg class="i"><use href="#i-download"/></svg>تحميل النموذج</button></div>
     <label class="drop" id="drop">
       <svg class="i" style="width:28px;height:28px"><use href="#i-upload"/></svg>
-      <b>اختر الملف أو اسحبه هنا</b><span>xlsx · xls · csv · pdf</span>
-      <input type="file" id="file" accept=".xlsx,.xls,.csv,.pdf">
+      <b>اختر الملف أو اسحبه هنا</b><span>xlsx · xls · csv · docx · pdf</span>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv,.docx,.pdf">
     </label>
     <div id="up-msg"></div>
     <div id="pdf-box" hidden style="display:flex;flex-direction:column;gap:12px">
       <div class="msg info"><svg class="i"><use href="#i-alert"/></svg><div>
-        <b>حوّلت الـ PDF إلى جدول.</b> حدد فوق كل عمود وش فيه، والأعمدة اللي ما تبيها خلها «تجاهل». راجع القراءة، لأن الملفات المصوّرة ممكن يكون فيها أخطاء.</div></div>
+        <b>حوّلت الملف إلى جدول.</b> حدد فوق كل عمود وش فيه، والأعمدة اللي ما تبيها خلها «تجاهل». راجع القراءة، لأن الملفات المصوّرة ممكن يكون فيها أخطاء.</div></div>
       <div class="row">
         <div class="field"><label for="pm-dept">القسم (إذا الملف كله لقسم واحد)</label><input id="pm-dept" list="depts" placeholder="مثل: الباطنة"></div>
         <div class="field" style="max-width:170px"><label for="pm-month">الشهر (إذا التاريخ رقم اليوم بس)</label><input id="pm-month" type="month"></div>
@@ -354,6 +354,7 @@ $("tpl").onclick = () => {
 async function readFile(f){
   $("pdf-box").hidden = true;
   if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") return readPdf(f);
+  if (/\.docx$/i.test(f.name)) return readDocx(f);
   try {
     const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" });
@@ -447,6 +448,33 @@ async function readPdf(f){
   } catch (e) { msg("up-msg", "err", "ما قدرت أقرأ الـ PDF. تأكد إن النت شغال وحاول مرة ثانية."); }
 }
 
+// Word: tables are read straight from the .docx XML, so cells come out exactly as typed (merged cells repeat across their span).
+async function readDocx(f){
+  $("preview").hidden = true;
+  try {
+    if (!window.JSZip) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    const zip = await JSZip.loadAsync(await f.arrayBuffer());
+    const xml = new DOMParser().parseFromString(await zip.file("word/document.xml").async("string"), "application/xml");
+    const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main", grid = [];
+    const kids = (el, name) => [...el.children].filter(c => c.namespaceURI === W && c.localName === name);
+    const text = el => [...el.getElementsByTagNameNS(W, "p")].map(p => [...p.getElementsByTagNameNS(W, "t")].map(t => t.textContent).join("")).filter(Boolean).join(" ").trim();
+    const nested = el => { for (let p = el.parentNode; p && p.nodeType === 1; p = p.parentNode) if (p.namespaceURI === W && p.localName === "tbl") return true; return false; };
+    [...xml.getElementsByTagNameNS(W, "tbl")].filter(t => !nested(t)).forEach(tbl => {
+      if (grid.length) grid.push([]);
+      kids(tbl, "tr").forEach(tr => {
+        const row = [];
+        kids(tr, "tc").forEach(tc => { const span = +(tc.getElementsByTagNameNS(W, "gridSpan")[0]?.getAttributeNS(W, "val") || 1); const t = text(tc); for (let i = 0; i < span; i++) row.push(t); });
+        grid.push(row);
+      });
+    });
+    if (!grid.length) return msg("up-msg", "err", "ما لقيت جدول داخل ملف Word. لازم الجدول يكون جدول Word (إدراج ← جدول)، مو مسافات.");
+    const width = Math.max(...grid.map(r => r.length));
+    pdfGrid = grid.map(r => [...r, ...Array(width - r.length).fill("")]);
+    msg("up-msg", "ok", `قرأت ${pdfGrid.length} سطر و${width} عمود من ملف Word.`);
+    renderPdfMap();
+  } catch { msg("up-msg", "err", "ما قدرت أقرأ ملف Word. تأكد إنه .docx (مو .doc القديم)."); }
+}
+
 let pdfGrid = [];
 const ROLE = [["", "تجاهل"], ["dept", "القسم"], ["day", "التاريخ / اليوم"], ["level", "المستوى"], ["name", "الاسم"], ["phone", "الجوال"],
   ["start_t", "من"], ["end_t", "إلى"], ["n_res", "اسم المقيم"], ["n_spec", "اسم الأخصائي"], ["n_cons", "اسم الاستشاري"]];
@@ -505,8 +533,8 @@ $("pm-go").onclick = () => {
   showItems({ items, errors });
 };
 $("pm-xlsx").onclick = () => {
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pdfGrid), "من PDF");
-  XLSX.writeFile(wb, "جدول-محوّل-من-PDF.xlsx");
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pdfGrid), "الجدول");
+  XLSX.writeFile(wb, "جدول-محوّل.xlsx");
 };
 $("pm-cancel").onclick = () => { pdfGrid = []; $("pdf-box").hidden = true; $("file").value = ""; msg("up-msg"); };
 $("file").onchange = e => e.target.files[0] && readFile(e.target.files[0]);
