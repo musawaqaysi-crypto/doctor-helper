@@ -275,14 +275,16 @@ $("f-email").onsubmit = async e => {
 };
 $("logout").onclick = () => sb.auth.signOut();
 
-sb.auth.onAuthStateChange(async (_ev, session) => {
+// supabase-js deadlocks if the auth callback awaits another Supabase call, so the admin check runs after it returns.
+sb.auth.onAuthStateChange((_ev, session) => { setTimeout(() => enter(session), 0); });
+async function enter(session){
   $("logout").hidden = !session;
   if (!session) return show("v-login");
   const { data } = await sb.rpc("is_admin");
   if (!data) { await sb.auth.signOut(); msg("login-msg", "err", "هذا الحساب ما عنده صلاحية مشرف."); return; }
   show("v-admin");
   loadDay(); loadStaff();
-});
+}
 
 // ---------- parsing ----------
 const HEAD = {
