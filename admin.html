@@ -157,17 +157,32 @@ td.num{font-family:var(--f-data);direction:ltr;text-align:right}
 
   <section class="card">
     <div class="card-h"><span class="tile"><svg class="i"><use href="#i-upload"/></svg></span>
-      <div><h2>رفع جدول مناوبات</h2><p>ملف Excel أو CSV. يستبدل جدول نفس القسم في نفس الأيام.</p></div></div>
+      <div><h2>رفع جدول مناوبات</h2><p>Excel أو CSV أو PDF. يستبدل جدول نفس القسم في نفس الأيام.</p></div></div>
     <ol class="steps">
       <li><b>1</b> حمّل النموذج</li><li><b>2</b> عبّه</li><li><b>3</b> ارفعه وراجع</li><li><b>4</b> احفظ</li>
     </ol>
     <div class="row"><button class="btn ghost" id="tpl"><svg class="i"><use href="#i-download"/></svg>تحميل النموذج</button></div>
     <label class="drop" id="drop">
       <svg class="i" style="width:28px;height:28px"><use href="#i-upload"/></svg>
-      <b>اختر الملف أو اسحبه هنا</b><span>xlsx · xls · csv</span>
-      <input type="file" id="file" accept=".xlsx,.xls,.csv">
+      <b>اختر الملف أو اسحبه هنا</b><span>xlsx · xls · csv · pdf</span>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv,.pdf">
     </label>
     <div id="up-msg"></div>
+    <div id="pdf-box" hidden style="display:flex;flex-direction:column;gap:12px">
+      <div class="msg info"><svg class="i"><use href="#i-alert"/></svg><div>
+        <b>حوّلت الـ PDF إلى جدول.</b> حدد فوق كل عمود وش فيه، والأعمدة اللي ما تبيها خلها «تجاهل». راجع القراءة، لأن الملفات المصوّرة ممكن يكون فيها أخطاء.</div></div>
+      <div class="row">
+        <div class="field"><label for="pm-dept">القسم (إذا الملف كله لقسم واحد)</label><input id="pm-dept" list="depts" placeholder="مثل: الباطنة"></div>
+        <div class="field" style="max-width:170px"><label for="pm-month">الشهر (إذا التاريخ رقم اليوم بس)</label><input id="pm-month" type="month"></div>
+        <div class="field" style="max-width:110px"><label for="pm-skip">تجاهل أول</label><select id="pm-skip"></select></div>
+      </div>
+      <div class="tablewrap"><table id="pm-table"></table></div>
+      <div class="row">
+        <button class="btn primary" id="pm-go"><svg class="i"><use href="#i-check"/></svg>جهّز للحفظ</button>
+        <button class="btn ghost" id="pm-xlsx"><svg class="i"><use href="#i-download"/></svg>تحميل كـ Excel</button>
+        <button class="btn ghost" id="pm-cancel">إلغاء</button>
+      </div>
+    </div>
     <div id="preview" hidden>
       <div class="summary" id="up-sum"></div>
       <div class="tablewrap"><table id="up-table"></table></div>
@@ -337,10 +352,16 @@ $("tpl").onclick = () => {
   XLSX.writeFile(wb, "نموذج-جدول-المناوبات.xlsx");
 };
 async function readFile(f){
+  $("pdf-box").hidden = true;
+  if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") return readPdf(f);
   try {
     const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" });
-    const { items, errors } = parseSheet(rows);
+    showItems(parseSheet(rows));
+  } catch { msg("up-msg", "err", "ما قدرت أقرأ الملف. تأكد إنه Excel أو CSV أو PDF."); }
+}
+function showItems({ items, errors }){
+  {
     pending = items;
     const errHtml = errors.length ? `<b>${errors.length} سطر فيه مشكلة وما راح ينحفظ:</b><ul>${errors.slice(0, 8).map(e => `<li>${e}</li>`).join("")}</ul>${errors.length > 8 ? "…" : ""}` : "";
     if (!items.length) { $("preview").hidden = true; return msg("up-msg", "err", errHtml || "الملف فاضي."); }
@@ -352,8 +373,142 @@ async function readFile(f){
       items.slice(0, 40).map(i => `<tr><td>${esc(i.dept)}</td><td class="num">${i.day}</td><td><span class="lvl ${i.level}">${LV[i.level]}</span></td><td>${esc(i.name)}</td><td class="num">${esc(i.phone)}</td><td class="num">${i.start_t}</td><td class="num">${i.end_t}</td></tr>`).join("") +
       (items.length > 40 ? `<tr><td colspan="7" style="color:var(--muted)">و${items.length - 40} سطر ثاني…</td></tr>` : "");
     $("preview").hidden = false;
-  } catch { msg("up-msg", "err", "ما قدرت أقرأ الملف. تأكد إنه Excel أو CSV."); }
+  }
 }
+
+// ---------- PDF → table (free, in the browser): text layer when present, otherwise OCR ----------
+const loadScript = src => new Promise((ok, bad) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = bad; document.head.append(s); });
+async function libs(ocr){
+  if (!window.pdfjsLib) {
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+  if (ocr && !window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js");
+}
+
+// Words {x0,x1,y0,y1,t} on one page → rows of cells: rows by vertical overlap, columns by shared x-ranges across the page.
+function wordsToGrid(words){
+  if (!words.length) return [];
+  const h = words.map(w => w.y1 - w.y0).sort((a, b) => a - b)[Math.floor(words.length / 2)] || 10;
+  const lines = [];
+  words.slice().sort((a, b) => (a.y0 + a.y1) - (b.y0 + b.y1)).forEach(w => {
+    const cy = (w.y0 + w.y1) / 2, L = lines.at(-1);
+    if (L && Math.abs(cy - L.cy) < h * 0.6) { L.w.push(w); L.cy = (L.cy * (L.w.length - 1) + cy) / L.w.length; }
+    else lines.push({ cy, w: [w] });
+  });
+  const cells = lines.map(L => {
+    const ws = L.w.sort((a, b) => a.x0 - b.x0), out = [];
+    ws.forEach(w => { const c = out.at(-1); if (c && w.x0 - c.x1 < h * 0.9) { c.x1 = Math.max(c.x1, w.x1); c.t += " " + w.t; } else out.push({ x0: w.x0, x1: w.x1, t: w.t }); });
+    return out;
+  });
+  // Column centres come from table-like lines (3+ cells), so a wide title line can't merge every column into one.
+  const mid = c => (c.x0 + c.x1) / 2, multi = cells.filter(r => r.length >= 3).flat();
+  const xs = (multi.length ? multi : cells.flat()).map(mid).sort((a, b) => a - b), centers = [];
+  let grp = [xs[0]];
+  for (let i = 1; i < xs.length; i++) { if (xs[i] - xs[i - 1] > h * 2.5) { centers.push(grp.reduce((a, b) => a + b) / grp.length); grp = []; } grp.push(xs[i]); }
+  centers.push(grp.reduce((a, b) => a + b) / grp.length);
+  return cells.map(row => { const r = Array(centers.length).fill("");
+    row.forEach(c => { let k = 0; centers.forEach((x, i) => { if (Math.abs(x - mid(c)) < Math.abs(centers[k] - mid(c))) k = i; }); r[k] = r[k] ? r[k] + " " + c.t : c.t; });
+    return r; });
+}
+
+async function readPdf(f){
+  $("preview").hidden = true;
+  try {
+    msg("up-msg", "info", "أجهّز قارئ الـ PDF…");
+    await libs(false);
+    const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
+    let grid = [], worker = null, ocrPages = 0;
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p), vp = page.getViewport({ scale: 1 });
+      const tc = await page.getTextContent();
+      let words = tc.items.filter(i => i.str.trim()).map(i => ({ x0: i.transform[4], x1: i.transform[4] + i.width, y1: vp.height - i.transform[5], y0: vp.height - i.transform[5] - Math.abs(i.transform[3] || 10), t: i.str.trim() }));
+      if (words.map(w => w.t).join("").length < 20) {
+        msg("up-msg", "info", `الصفحة ${p} من ${pdf.numPages} مصوّرة، أقرأ الصورة (OCR)… أول مرة تاخذ دقيقة.`);
+        await libs(true);
+        worker ||= await Tesseract.createWorker(["eng", "ara"]);
+        const v2 = page.getViewport({ scale: 2.5 }), cv = document.createElement("canvas");
+        cv.width = v2.width; cv.height = v2.height;
+        await page.render({ canvasContext: cv.getContext("2d"), viewport: v2 }).promise;
+        const { data } = await worker.recognize(cv);
+        words = (data.words || []).filter(w => w.confidence > 30 && w.text.trim()).map(w => ({ x0: w.bbox.x0, x1: w.bbox.x1, y0: w.bbox.y0, y1: w.bbox.y1, t: w.text.trim() }));
+        ocrPages++;
+      } else msg("up-msg", "info", `أقرأ الصفحة ${p} من ${pdf.numPages}…`);
+      const g = wordsToGrid(words);
+      if (g.length) grid.push(...(grid.length ? [[]] : []), ...g);
+    }
+    if (worker) await worker.terminate();
+    const width = Math.max(0, ...grid.map(r => r.length));
+    grid = grid.map(r => [...r, ...Array(width - r.length).fill("")]);
+    if (!grid.length) return msg("up-msg", "err", "ما لقيت نص في الملف.");
+    pdfGrid = grid;
+    msg("up-msg", "ok", `قرأت ${pdf.numPages} صفحة، ${grid.length} سطر و${width} عمود${ocrPages ? ` (${ocrPages} صفحة مصوّرة بالـ OCR)` : ""}.`);
+    renderPdfMap();
+  } catch (e) { msg("up-msg", "err", "ما قدرت أقرأ الـ PDF. تأكد إن النت شغال وحاول مرة ثانية."); }
+}
+
+let pdfGrid = [];
+const ROLE = [["", "تجاهل"], ["dept", "القسم"], ["day", "التاريخ / اليوم"], ["level", "المستوى"], ["name", "الاسم"], ["phone", "الجوال"],
+  ["start_t", "من"], ["end_t", "إلى"], ["n_res", "اسم المقيم"], ["n_spec", "اسم الأخصائي"], ["n_cons", "اسم الاستشاري"]];
+function guessRole(col){
+  const s = col.slice(0, 6).join(" ").toLowerCase();
+  if (/consult|استشار/.test(s)) return "n_cons";
+  if (/special|regist|أخصائ|اخصائ|نائب/.test(s)) return "n_spec";
+  if (/resident|مقيم|r1|r2/.test(s)) return "n_res";
+  if (/date|day|تاريخ|اليوم/.test(s)) return "day";
+  if (/mobile|phone|جوال|هاتف/.test(s)) return "phone";
+  return "";
+}
+function renderPdfMap(){
+  const w = pdfGrid[0].length, cols = [...Array(w).keys()];
+  $("pm-skip").innerHTML = [...Array(Math.min(10, pdfGrid.length)).keys()].map(i => `<option value="${i}">${i ? i + " سطر" : "لا شي"}</option>`).join("");
+  $("pm-table").innerHTML = `<tr>${cols.map(c => { const g = guessRole(pdfGrid.map(r => r[c]));
+      return `<th><select data-col="${c}" style="min-width:120px;padding:6px">${ROLE.map(([v, n]) => `<option value="${v}"${v === g ? " selected" : ""}>${n}</option>`).join("")}</select></th>`; }).join("")}</tr>` +
+    pdfGrid.slice(0, 25).map((r, i) => `<tr data-r="${i}">${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("") +
+    (pdfGrid.length > 25 ? `<tr><td colspan="${w}" style="color:var(--muted)">و${pdfGrid.length - 25} سطر ثاني…</td></tr>` : "");
+  $("pdf-box").hidden = false;
+}
+const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+function pdfDay(v, month){
+  const d = parseDay(v); if (d) return d;
+  const s = String(v).trim().toLowerCase();
+  let m = s.match(/(\d{1,2})\s*[-/ ]\s*([a-z]{3})[a-z]*\.?\s*[-/ ]?\s*(\d{2,4})?/);
+  if (m && MON[m[2]]) { const y = m[3] ? (m[3].length === 2 ? "20" + m[3] : m[3]) : (month || "").slice(0, 4); if (y) return `${y}-${String(MON[m[2]]).padStart(2, "0")}-${m[1].padStart(2, "0")}`; }
+  m = s.match(/(\d{1,2})\s*[/-]\s*(\d{1,2})(?:\s*[/-]\s*(\d{2,4}))?/);
+  if (m && month) { const y = m[3] ? (m[3].length === 2 ? "20" + m[3] : m[3]) : month.slice(0, 4); return `${y}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`; }
+  m = s.match(/\b(\d{1,2})\b/);
+  if (m && month && +m[1] >= 1 && +m[1] <= 31) return `${month}-${m[1].padStart(2, "0")}`;
+  return null;
+}
+$("pm-go").onclick = () => {
+  const role = {}; document.querySelectorAll("#pm-table select").forEach(s => s.value && (role[s.value] = +s.dataset.col));
+  const fixedDept = $("pm-dept").value.trim(), month = $("pm-month").value, skip = +$("pm-skip").value;
+  const perLevel = ["n_res", "n_spec", "n_cons"].filter(k => k in role);
+  if (!("day" in role)) return msg("up-msg", "err", "حدد عمود «التاريخ / اليوم».");
+  if (!("name" in role) && !perLevel.length) return msg("up-msg", "err", "حدد عمود الاسم، أو أعمدة «اسم المقيم / الأخصائي / الاستشاري».");
+  if (!("dept" in role) && !fixedDept) return msg("up-msg", "err", "اكتب اسم القسم فوق، أو حدد عمود «القسم».");
+  const items = [], errors = []; let lastDay = null;
+  pdfGrid.slice(skip).forEach((r, j) => {
+    const get = k => k in role ? String(r[role[k]] ?? "").trim() : "";
+    if (r.every(c => !String(c).trim())) return;
+    const n = skip + j + 1, rawDay = get("day");
+    const day = rawDay ? pdfDay(rawDay, month) : lastDay;
+    if (!day) return rawDay && errors.push(`سطر ${n}: التاريخ «${esc(rawDay)}» غير مفهوم${month ? "" : ". إذا هو رقم اليوم بس، حدد الشهر فوق"}`);
+    lastDay = day;
+    const dept = get("dept") || fixedDept, st = parseTime(get("start_t")) || "", en = parseTime(get("end_t")) || "", phone = get("phone").replace(/[^\d+]/g, "");
+    const add = (name, lv) => name && !/^[-–—.]+$/.test(name) && items.push({ dept, day, level: lv, name, phone, start_t: st, end_t: en, note: "" });
+    if (perLevel.length) perLevel.forEach(k => add(get(k), k.slice(2)));
+    else add(get("name"), level(get("level")) || "oth");
+  });
+  if (!items.length && !errors.length) errors.push("ما طلع ولا طبيب. تأكد من اختيار الأعمدة.");
+  $("pdf-box").hidden = true;
+  showItems({ items, errors });
+};
+$("pm-xlsx").onclick = () => {
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pdfGrid), "من PDF");
+  XLSX.writeFile(wb, "جدول-محوّل-من-PDF.xlsx");
+};
+$("pm-cancel").onclick = () => { pdfGrid = []; $("pdf-box").hidden = true; $("file").value = ""; msg("up-msg"); };
 $("file").onchange = e => e.target.files[0] && readFile(e.target.files[0]);
 const drop = $("drop");
 drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
