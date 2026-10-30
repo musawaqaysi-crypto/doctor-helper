@@ -307,11 +307,11 @@ function level(s){
 }
 function parseDay(v){
   if (typeof v === "number") { const p = XLSX.SSF.parse_date_code(v); return p ? `${p.y}-${String(p.m).padStart(2, "0")}-${String(p.d).padStart(2, "0")}` : null; }
-  const s = String(v ?? "").trim();
+  const s = String(v ?? "").trim().replace(/\s*([-/.])\s*/g, "$1");
   let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
   if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
-  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
-  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2}|\d{4})$/);
+  if (m) return `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
   return null;
 }
 function parseTime(v){
