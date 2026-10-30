@@ -303,6 +303,7 @@ function level(s){
   if (/استشار|consult/.test(s)) return "cons";
   if (/أخصائ|اخصائ|إخصائ|specialist|registrar|نائب/.test(s)) return "spec";
   if (/مقيم|resident|^r\d|امتياز|intern/.test(s)) return "res";
+  if (/مناوب|on.?call|duty/.test(s)) return "oth";
   return s.trim() ? null : "oth";
 }
 function parseDay(v){

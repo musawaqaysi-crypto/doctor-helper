@@ -145,6 +145,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 .lockup{height:46px;width:auto;max-width:100%;border-radius:10px;display:block;flex:none}
 header h1{font-size:1rem}
 @media (min-width:900px){.side .brand{flex-direction:column;align-items:stretch;gap:10px}.side .brand .lockup{width:100%;height:auto;border-radius:12px}.side .brand span{padding:0 4px}}
+.daynav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.daynav button{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--raise);color:var(--ink);border-radius:999px;padding:6px 12px;font:500 .8rem var(--f-body);cursor:pointer}
+.daynav button svg.i{width:16px;height:16px}
+[dir="rtl"] .daynav .flip{transform:scaleX(-1)} [dir="ltr"] .daynav .flip2{transform:scaleX(-1)}
 /* live touches */
 @keyframes kb{from{transform:scale(1)}to{transform:scale(1.08)}}
 .hero img{animation:kb 18s ease-in-out infinite alternate;transform-origin:70% 20%}
@@ -313,6 +317,7 @@ const T = {
       lock_t:"دخول الأطباء", lock_p:"يطلب منك مرة وحدة بس على هذا الجوال.", lock_b:"دخول",
       emp:"الرقم الوظيفي", pin:"آخر 4 أرقام من جوالك", hello:"أهلاً", signout:"خروج",
       board:"لوحة المناوبات", board_p:"المناوبون الحين حسب التخصص والمستوى", menu:"القائمة", specialties:"التخصصات",
+      prev:"اليوم السابق", next:"اليوم التالي", now:"الآن", day:"جدول اليوم كامل", next_roster:"ما فيه مناوبين مسجلين الحين. أقرب جدول يبدأ", show_it:"اعرضه",
       lock_bad:"الرقم الوظيفي أو آخر 4 أرقام غير صحيحة.", lock_locked:"محاولات كثيرة. انتظر 15 دقيقة وحاول مرة ثانية.",
       lock_inactive:"حسابك موقوف. راجع المشرف.", lock_net:"ما فيه اتصال. حاول مرة ثانية.",
       empty_now:"ما فيه مناوبين مسجلين لهذا الوقت.",
@@ -328,6 +333,7 @@ const T = {
       lock_t:"Doctor sign-in", lock_p:"You only need to do this once on this phone.", lock_b:"Sign in",
       emp:"Employee number", pin:"Last 4 digits of your mobile", hello:"Hello", signout:"Sign out",
       board:"On-call board", board_p:"Who is on call now, by specialty and level", menu:"Menu", specialties:"Specialties",
+      prev:"Previous day", next:"Next day", now:"Now", day:"Whole-day roster", next_roster:"No one is listed right now. The next roster starts", show_it:"Show it",
       lock_bad:"Employee number or last 4 digits are incorrect.", lock_locked:"Too many attempts. Wait 15 minutes and try again.",
       lock_inactive:"Your access is paused. Contact the administrator.", lock_net:"No connection. Try again.",
       empty_now:"No one is listed on call right now.",
@@ -487,9 +493,9 @@ function covers(r, now){
   return s <= now && now < e;
 }
 
-function groupNow(rows, fetchedAt){
+function groupNow(rows, fetchedAt, wholeDay){
   const now = new Date(), by = {};
-  rows.filter(r => covers(r, now)).forEach(r => (by[r.dept] ||= []).push(
+  rows.filter(r => wholeDay ? r.day === wholeDay : covers(r, now)).forEach(r => (by[r.dept] ||= []).push(
     {level: r.level, name: r.name, phone: r.phone, shift: "", start: r.start_t, end: r.end_t, note: r.note, day: r.day}));
   return {at: fetchedAt, depts: Object.keys(by).sort((a, b) => a.localeCompare(b, "ar")).map(dept => ({dept, rows: by[dept]}))};
 }
@@ -498,33 +504,45 @@ function groupNow(rows, fetchedAt){
 const digits = s => String(s ?? "").trim().replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/\s+/g, "");
 let lockMsg = "", me = "";
 function signOut(){ ["dh-emp", "dh-pin", "dh-rows", "dh-me"].forEach(k => store.set(k, null)); lockMsg = ""; loadDuty(); }
+let viewDay = null, nextDay = null;
+async function fetchDuty(from, to, emp, pin){
+  const ctl = new AbortController(); setTimeout(() => ctl.abort(), 10000);
+  const r = await fetch(`${CFG.url}/rest/v1/rpc/get_duty`, {method: "POST", signal: ctl.signal, cache: "no-store",
+    headers: {"Content-Type": "application/json", apikey: CFG.anonKey, Authorization: `Bearer ${CFG.anonKey}`},
+    body: JSON.stringify({p_emp: emp || "", p_pin: pin || "", p_from: from, p_to: to})});
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
 async function loadDuty(){
   if (!CFG.url || location.hash === "#demo") { duty = DEMO; dutySrc = "demo"; return render(); }
   const emp = store.get("dh-emp", null), pin = store.get("dh-pin", null), saved = store.get("dh-rows", null);
   me = store.get("dh-me", "") || "";
-  if (saved) { duty = groupNow(saved.rows, saved.at); dutySrc = "cached"; render(); }
+  if (saved && !viewDay) { duty = groupNow(saved.rows, saved.at); dutySrc = "cached"; render(); }
   try {
-    const now = new Date(), y = new Date(now); y.setDate(y.getDate() - 1);
-    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 10000);
-    const r = await fetch(`${CFG.url}/rest/v1/rpc/get_duty`, {method: "POST", signal: ctl.signal, cache: "no-store",
-      headers: {"Content-Type": "application/json", apikey: CFG.anonKey, Authorization: `Bearer ${CFG.anonKey}`},
-      body: JSON.stringify({p_emp: emp || "", p_pin: pin || "", p_from: ymd(y), p_to: ymd(now)})});
-    if (!r.ok) throw new Error(r.status);
-    const d = await r.json();
+    const now = new Date(), at = hm(now), y = new Date(now); y.setDate(y.getDate() - 1);
+    const d = viewDay ? await fetchDuty(viewDay, viewDay, emp, pin) : await fetchDuty(ymd(y), ymd(now), emp, pin);
     if (!d.ok) {
       ["dh-pin", "dh-rows"].forEach(k => store.set(k, null));
       duty = {at: "", depts: []}; dutySrc = "locked"; lockMsg = emp && pin ? "lock_" + (d.reason || "bad") : ""; return render();
     }
-    const at = hm(now);
     me = d.name || ""; store.set("dh-me", me);
-    // Until the first roster is uploaded, show the marked demo board instead of an empty page.
-    if (!d.rows.length) { duty = DEMO; dutySrc = "demo"; store.set("dh-rows", null); return render(); }
+    if (viewDay) { duty = groupNow(d.rows, at, viewDay); dutySrc = "day"; return render(); }
+    nextDay = null;
+    if (!d.rows.length) {
+      // Nothing on now: point to the next roster within a week; only with no roster at all show the demo board.
+      const a1 = new Date(now), a7 = new Date(now); a1.setDate(a1.getDate() + 1); a7.setDate(a7.getDate() + 7);
+      const n = await fetchDuty(ymd(a1), ymd(a7), emp, pin);
+      if (n.ok && n.rows.length) nextDay = n.rows.map(r => r.day).sort()[0];
+      else { duty = DEMO; dutySrc = "demo"; store.set("dh-rows", null); return render(); }
+    }
     store.set("dh-rows", {rows: d.rows, at});
     duty = groupNow(d.rows, at); dutySrc = "live"; render();
   } catch {
     if (!saved) { duty = {at: "", depts: []}; dutySrc = "locked"; lockMsg = "lock_net"; render(); }
   }
 }
+function goDay(d){ viewDay = d; cat = "all"; loadDuty(); }
+function shiftDay(n){ const d = new Date(`${viewDay || ymd(new Date())}T12:00`); d.setDate(d.getDate() + n); goDay(ymd(d)); }
 
 function renderLock(){
   const inp = `padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;width:100%`;
@@ -561,10 +579,13 @@ function renderChips(){
 function renderOncall(q){
   if (dutySrc === "locked") return renderLock();
   const st =dutySrc === "demo" ? `<p class="status demo"><span class="dot"></span>${t("demo")}</p>`
-    : `<p class="status"><span class="dot"></span>${me ? `${t("hello")} ${esc(me)} · ` : ""}${t(dutySrc)} <bdi>${esc(duty.at)}</bdi>
+    : `<p class="status"><span class="dot"></span>${me ? `${t("hello")} ${esc(me)} · ` : ""}${dutySrc === "day" ? t("day") : `${t(dutySrc)} <bdi>${esc(duty.at)}</bdi>`}
         ${me ? `<button id="signout" style="margin-inline-start:auto;border:0;background:none;color:var(--muted);font:inherit;text-decoration:underline;cursor:pointer">${t("signout")}</button>` : ""}</p>`;
-  const today = new Date().toLocaleDateString(lang === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {weekday: "long", day: "numeric", month: "long"});
-  const head = `<div class="board-h"><span class="datepill"><span class="dot"></span>${esc(today)} · <bdi>${hm(new Date())}</bdi></span>
+  const fmt = d => d.toLocaleDateString(lang === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {weekday: "long", day: "numeric", month: "long"});
+  const today = fmt(viewDay ? new Date(`${viewDay}T12:00`) : new Date());
+  const nav = dutySrc === "demo" ? "" : `<div class="daynav"><button data-nav="-1">${icon("back", "flip")}${t("prev")}</button>
+    ${viewDay ? `<button data-nav="0">${t("now")}</button>` : ""}<button data-nav="1">${t("next")}${icon("back", "flip2")}</button></div>`;
+  const head = `<div class="board-h"><span class="datepill"><span class="dot"></span>${esc(today)}${viewDay ? "" : ` · <bdi>${hm(new Date())}</bdi>`}</span>${nav}
     <div class="top"><div><h2>${t("board")}</h2><p>${t("board_p")}</p></div>
       <a class="addbtn" href="admin.html">${icon("plus")}${t("add")}</a></div></div>`;
   let hits = 0;
@@ -590,7 +611,9 @@ function renderOncall(q){
       <span><b>${esc(deptName(d.dept))}</b>${other && other !== deptName(d.dept) ? `<small>${esc(other)}</small>` : ""}</span>
       <span class="count">${shown.length} ${t("doctors")}</span></div><div class="tiles">${tiles}</div></div>`;
   }).join("");
-  document.getElementById("view").innerHTML = head + st + (cards || (q ? "" : `<p class="empty">${t("empty_now")}</p>`));
+  const nd = nextDay && !viewDay ? `<p class="empty">${t("next_roster")} <bdi>${esc(fmt(new Date(`${nextDay}T12:00`)))}</bdi><br>
+    <button class="addbtn" style="margin-top:12px;border:0;cursor:pointer;font:inherit" data-goto="${nextDay}">${t("show_it")}</button></p>` : "";
+  document.getElementById("view").innerHTML = head + st + (cards || (q ? "" : nd || `<p class="empty">${t("empty_now")}</p>`));
   return hits || (q ? 0 : 1);
 }
 
@@ -723,6 +746,10 @@ document.addEventListener("click", e => {
     return;
   }
   if (e.target.id === "signout") return signOut();
+  const nv = e.target.closest("[data-nav]");
+  if (nv) return +nv.dataset.nav === 0 ? goDay(null) : shiftDay(+nv.dataset.nav);
+  const gt = e.target.closest("[data-goto]");
+  if (gt) return goDay(gt.dataset.goto);
   const c = e.target.closest("[data-copy]");
   if (c){
     const done = () => { c.innerHTML = icon("check"); setTimeout(() => c.innerHTML = icon("copy"), 1500); };
