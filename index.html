@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>مساعد الطبيب</title>
+<title>مُناوِب</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="المناوبون حسب التخصص، ومراجع وبروتوكولات سريعة للأطباء">
 <meta name="theme-color" content="#0c1222">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="مساعد الطبيب">
+<meta name="apple-mobile-web-app-title" content="مُناوِب">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
@@ -347,7 +347,7 @@ aside.side{display:none}
 const CFG = window.DH_CONFIG || {};
 
 const T = {
-  ar:{app:"مساعد الطبيب", tag:"المناوبون والمراجع والبروتوكولات", other:"English",
+  ar:{app:"مُناوِب", tag:"المناوبون والمراجع والبروتوكولات", other:"English",
       t_oncall:"المناوبون", t_clinics:"العيادات", t_links:"المراجع", t_protocols:"البروتوكولات", clinics_p:"العيادات الخارجية لكل قسم خلال اليوم", no_clinics:"ما فيه عيادات مسجلة لهذا اليوم.",
       q_oncall:"ابحث عن تخصص أو اسم طبيب…", q_links:"ابحث: ECG، جرعة، أشعة…", q_protocols:"ابحث: sepsis، stroke…", q_clinics:"ابحث عن قسم أو طبيب…",
       all:"الكل", mine:"روابطي", personal:"رابط شخصي", name:"اسم الموقع", add:"إضافة", del:"حذف",
@@ -363,7 +363,7 @@ const T = {
       nobody:"ما فيه أحد مسجّل لهذا المستوى", doctors:"أطباء", call:"اتصال", copy:"نسخ الرقم",
       none:"ما فيه نتائج لهذا البحث",
       disclaimer:"مرجع سريع مبني على الإرشادات العالمية، ولا يغني عن سياسة المستشفى والتقييم السريري."},
-  en:{app:"Doctor's Assistant", tag:"On-call, references and protocols", other:"عربي",
+  en:{app:"Munawib", tag:"On-call, references and protocols", other:"عربي",
       t_oncall:"On-call", t_clinics:"Clinics", t_links:"References", t_protocols:"Protocols", clinics_p:"Outpatient clinics by department for the day", no_clinics:"No clinics listed for this day.",
       q_oncall:"Search a specialty or doctor…", q_links:"Search: ECG, dose, imaging…", q_protocols:"Search: sepsis, stroke…", q_clinics:"Search a department or doctor…",
       all:"All", mine:"My links", personal:"Personal link", name:"Site name", add:"Add", del:"Delete",
@@ -640,9 +640,9 @@ function renderOncall(q){
     const order = [...LEVELS, "oth"].filter(l => l !== "oth" || shown.some(r => r.lv === "oth"));
     const tiles = order.flatMap(l => {
       const docs = shown.filter(r => r.lv === l);
-      if (!docs.length) return q ? [] : [`<div class="dtile none ${l}"><div class="dt-head"><span class="av">—</span><div class="dt-id"><b>${t("unlisted")}</b><span class="badge">${CODE[l]} · ${t(l)}</span></div></div></div>`];
+      if (!docs.length) return q ? [] : [`<div class="dtile none ${l}"><div class="dt-head"><div class="dt-id"><b>${t("unlisted")}</b><span class="badge">${CODE[l]} · ${t(l)}</span></div></div></div>`];
       return docs.map(r => `<div class="dtile ${l}">
-        <div class="dt-head"><span class="av">${esc(initials(r.name))}</span><div class="dt-id"><b>${esc(r.name)}</b><span class="badge">${CODE[l]} · ${t(l)}</span></div></div>
+        <div class="dt-head"><div class="dt-id"><b>${esc(r.name)}</b><span class="badge">${CODE[l]} · ${t(l)}</span></div></div>
         ${r.start ? `<div class="dt-time">${icon("clock")}<bdi>${esc(r.start)}–${esc(r.end)}</bdi></div>` : ""}${progress(r)}
         ${r.phone ? `<div class="dt-act"><a class="callbtn" href="tel:${esc(r.phone)}" aria-label="${t("call")} ${esc(r.name)}">${icon("phone")}<bdi>${esc(r.phone)}</bdi></a>
           <button class="cp" data-copy="${esc(r.phone)}" aria-label="${t("copy")}">${icon("copy")}</button></div>` : ""}</div>`);
