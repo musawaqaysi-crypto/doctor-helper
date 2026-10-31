@@ -65,6 +65,18 @@ def newest(name):
     return max(hits, key=os.path.getmtime) if hits else None
 NAMES = ["GENERAL_SURGERY", "GENERAL_SURGERY_-_RESIDENT", "PEDIATRIC_SURGERY", "PSYCHIATRIC", "OBSTETRICS__GYNECOLOGY_RESIDENT",
          "OBSTETRICS__GYNECOLOGY_SPECIALIST_AND_CONSULTANT", "ADULT_INTENSIVE_CARE_UNIT", "ANESTHESIA", "CARDIOLOGY", "EMERGENCY_DEPARTMENT", "ENT"]
+
+def clinic_times(cell, st, en):
+    # "Dr. Noor (8:00am—4:00pm)" carries its own hours; otherwise the column's hours
+    m = re.search(r'(\d{1,2}):(\d{2})\s*(am|pm)\s*[—–-]+\s*(\d{1,2}):(\d{2})\s*(am|pm)', cell, re.I)
+    if not m: return st, en
+    h = lambda hh, ap: (int(hh) % 12) + (12 if ap.lower() == "pm" else 0)
+    return f"{h(m.group(1), m.group(3)):02d}:{m.group(2)}", f"{h(m.group(4), m.group(6)):02d}:{m.group(5)}"
+def clinic(dept, d, cell, st, en, label, book):
+    for part in [c for c in re.split(r'/|,|&', cell) if c.strip()]:
+        a, b = clinic_times(part, st, en)
+        add(dept, d, "عيادة", part, a, b, "عيادة · " + label, book)
+
 F = {n: newest(n) for n in NAMES}
 print("files:", {k: os.path.basename(v) if v else None for k, v in F.items()})
 F.update({"GYNECOLOGY_RESIDENT": F["OBSTETRICS__GYNECOLOGY_RESIDENT"], "SPECIALIST_AND_CONSULTANT": F["OBSTETRICS__GYNECOLOGY_SPECIALIST_AND_CONSULTANT"], "INTENSIVE_CARE": F["ADULT_INTENSIVE_CARE_UNIT"]})
@@ -145,6 +157,42 @@ t = tables(F["ENT"]); book = phonebook(t)
 for r in t[0]:
     d = day(r[0]) if r else None
     if d: add("الأنف والأذن والحنجرة", d, "مناوب", r[2], "07:30", "16:00", "مناوب", book)
+# Outpatient clinics (OPD columns) → shown in each department's clinics box
+t = tables(F["GENERAL_SURGERY"]); book = phonebook(t)
+for r in t[0]:
+    d = day(r[0]) if r else None
+    if not d: continue
+    clinic("الجراحة العامة", d, r[4], "08:00", "12:00", "صباحية", book)
+    clinic("الجراحة العامة", d, r[5], "13:00", "16:00", "مسائية", book)
+t = tables(F["PEDIATRIC_SURGERY"]); book = phonebook(t)
+for r in t[0]:
+    d = day(r[0]) if r else None
+    if d and len(r) > 3: clinic("جراحة الأطفال", d, r[3], "08:00", "16:00", "العيادة الخارجية", book)
+t = tables(F["SPECIALIST_AND_CONSULTANT"]); book = phonebook(t)
+for r in t[0]:
+    d = day(r[0]) if r else None
+    if d and len(r) > 7: clinic("النساء والولادة", d, r[7], "08:00", "16:00", "العيادة الخارجية", book)
+t = tables(F["PSYCHIATRIC"]); book = phonebook(t)
+for r in t[0]:
+    d = day(r[0]) if r else None
+    if not d: continue
+    clinic("الطب النفسي", d, r[3], "08:00", "16:00", "العيادة الخارجية", book)
+    clinic("الطب النفسي", d, r[4], "08:00", "16:00", "عيادة إرادة", book)
+    clinic("الطب النفسي", d, r[5], "08:00", "16:00", "العيادة الافتراضية", book)
+t = tables(F["ANESTHESIA"]); book = phonebook(t)
+for r in t[0]:
+    d = day(r[0]) if r else None
+    if d and len(r) > 10: clinic("التخدير", d, r[10], "08:00", "16:00", "عيادة ما قبل التخدير", book)
+t = tables(F["CARDIOLOGY"]); book = phonebook(t)
+for r in t[0]:
+    d = day(r[0]) if r else None
+    if not d: continue
+    clinic("القلب", d, r[4], "08:00", "12:00", "صباحية", book)
+    clinic("القلب", d, r[5], "13:00", "16:00", "مسائية", book)
+t = tables(F["ENT"]); book = phonebook(t)
+for r in t[0]:
+    d = day(r[0]) if r else None
+    if d and len(r) > 3: clinic("الأنف والأذن والحنجرة", d, r[3], "08:00", "16:00", "العيادة الخارجية", book)
 wb = Workbook(); ws = wb.active; ws.title = "المناوبات"; ws.sheet_view.rightToLeft = True
 ws.append(["القسم", "التاريخ", "المستوى", "الاسم", "الجوال", "من", "إلى", "ملاحظة"])
 for c in ws[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1C2230"); c.alignment = Alignment(horizontal="center")
