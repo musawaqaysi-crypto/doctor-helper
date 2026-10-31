@@ -20,7 +20,7 @@
 :root{
   --bg:#0c1222; --surface:#141c30; --raise:#1a2440; --ink:#e8edf7; --muted:#8a96b2; --line:#26324e;
   --accent:#4f7cff; --accent-ink:#ffffff; --accent-soft:#1c2b55;
-  --live:#3ddc84; --alert:#ff7a7a; --alert-soft:#3a1c26;
+  --live:#3ddc84; --alert:#ff7a7a; --alert-soft:#3a1c26; --phone:#5ee0d0; --nav-on:#ffffff;
   --res:#f5c44e; --res-soft:#2e2717; --spec:#ff8a8a; --spec-soft:#331c25; --cons:#8cc8ff; --cons-soft:#172a44;
   --f-body:"IBM Plex Sans Arabic","IBM Plex Sans",-apple-system,"SF Arabic",Tahoma,sans-serif;
   --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -150,14 +150,62 @@ header h1{font-size:1rem}
 .daynav button svg.i{width:16px;height:16px}
 [dir="rtl"] .daynav .flip{transform:scaleX(-1)} [dir="ltr"] .daynav .flip2{transform:scaleX(-1)}
 .clinics{border:1px solid var(--line);border-radius:14px;background:var(--bg);overflow:hidden}
-.clinics-h{display:flex;align-items:center;gap:8px;padding:9px 12px;font-weight:700;font-size:.88rem;color:#7fd6c8;border-bottom:1px solid var(--line)}
+.clinics-h{display:flex;align-items:center;gap:8px;padding:9px 12px;font-weight:700;font-size:.88rem;color:var(--accent);border-bottom:1px solid var(--line)}
 .clinics-h svg.i{width:17px;height:17px}
 .clinic{display:flex;align-items:center;gap:10px;padding:8px 12px;flex-wrap:wrap}
 .clinic + .clinic{border-top:1px solid var(--line)}
 .clinic b{font-size:.9rem}
 .clinic .lbl{font-size:.75rem;color:var(--muted);background:var(--raise);border-radius:6px;padding:1px 8px}
 .clinic .tm{font:500 .75rem var(--f-data);color:var(--muted);margin-inline-start:auto}
-.clinic .ph{font:600 .78rem var(--f-data);color:#5ee0d0;text-decoration:none;direction:ltr}
+.clinic .ph{font:600 .78rem var(--f-data);color:var(--phone);text-decoration:none;direction:ltr}
+/* light skins, chosen with data-skin on <html> */
+:root[data-skin="clinical"]{
+  --bg:#f3f7fb; --surface:#ffffff; --raise:#edf3f9; --ink:#0f2238; --muted:#5b6f86; --line:#dbe5ef;
+  --accent:#1769c4; --accent-soft:#e2eefb; --live:#14a06a; --alert:#c2412d; --alert-soft:#fdeeea;
+  --res:#a8670a; --res-soft:#fff5e3; --spec:#c2412d; --spec-soft:#fdece8; --cons:#1769c4; --cons-soft:#e6f0fc;
+  --phone:#0b7f8c; --nav-on:#0f4f9a; color-scheme:light;
+}
+:root[data-skin="green"]{
+  --bg:#f1f7f3; --surface:#ffffff; --raise:#e7f1eb; --ink:#0d2a1e; --muted:#567066; --line:#d4e5da;
+  --accent:#0d7a54; --accent-soft:#dff1e8; --live:#0f9f6d; --alert:#b83b3b; --alert-soft:#fbeaea;
+  --res:#a36400; --res-soft:#fff3dc; --spec:#b83b3b; --spec-soft:#fbe9e9; --cons:#0d6a99; --cons-soft:#e2f0f8;
+  --phone:#0b7d5e; --nav-on:#0a5c40; color-scheme:light;
+}
+:root[data-skin] .dcard,:root[data-skin] aside.side,:root[data-skin] header{box-shadow:0 1px 2px rgba(15,34,56,.06),0 4px 16px rgba(15,34,56,.05)}
+/* doctor cards: initials avatar, name, level badge, shift time, progress, call button */
+.dtile{--lvc:var(--muted);--lvs:var(--raise);background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--lvc);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.dtile.res{--lvc:var(--res);--lvs:var(--res-soft)} .dtile.spec{--lvc:var(--spec);--lvs:var(--spec-soft)} .dtile.cons{--lvc:var(--cons);--lvs:var(--cons-soft)}
+.dt-head{display:flex;align-items:center;gap:10px;min-width:0}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.92rem;background:var(--lvs);color:var(--lvc);border:1.5px solid color-mix(in srgb,var(--lvc) 45%,transparent);flex:none}
+.dt-id{min-width:0;display:flex;flex-direction:column;gap:4px}
+.dt-id b{font-size:1rem;font-weight:700;color:var(--ink);line-height:1.3;overflow-wrap:anywhere}
+.badge{align-self:flex-start;font:600 .68rem var(--f-body);color:var(--lvc);background:var(--lvs);border-radius:999px;padding:2px 9px}
+.dt-time{display:flex;align-items:center;gap:6px;font:500 .78rem var(--f-data);color:var(--muted)}
+.dt-time svg.i{width:14px;height:14px}
+.dtile .bar{width:100%;height:5px;border-radius:5px;background:color-mix(in srgb,var(--ink) 9%,transparent);overflow:hidden;color:var(--lvc)}
+.dtile .bar i{display:block;height:100%;border-radius:5px;background:currentColor}
+.dtile .left{font-size:.7rem;color:var(--muted);margin-top:-6px}
+.dt-act{display:flex;gap:6px}
+.callbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;padding:8px;background:var(--lvs);color:var(--lvc);text-decoration:none;font:600 .8rem var(--f-data);border:1px solid color-mix(in srgb,var(--lvc) 30%,transparent)}
+.callbtn svg.i{width:15px;height:15px}
+.cp{width:38px;border-radius:10px;border:1px solid var(--line);background:var(--raise);color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.cp svg.i{width:15px;height:15px}
+.dtile.none{border-style:dashed;opacity:.6}
+.dtile.none .dt-id b{color:var(--muted);font-weight:500}
+@media (max-width:640px){
+  .dtile{padding:8px 6px;gap:6px;text-align:center}
+  .dt-head{flex-direction:column;gap:5px}
+  .dt-id{align-items:center}
+  .badge{align-self:center;font-size:.56rem;padding:1px 6px}
+  .av{width:34px;height:34px;font-size:.78rem}
+  .dt-id b{font-size:.8rem}
+  .dt-time{justify-content:center;font-size:.6rem;gap:3px}
+  .dt-time svg.i{width:11px;height:11px}
+  .dtile .left{font-size:.6rem;margin-top:-3px}
+  .callbtn{font-size:.6rem;padding:6px 3px;gap:3px}
+  .callbtn svg.i{width:11px;height:11px}
+  .cp{display:none}
+}
 /* live touches */
 @keyframes kb{from{transform:scale(1)}to{transform:scale(1.08)}}
 .hero img{animation:kb 18s ease-in-out infinite alternate;transform-origin:70% 20%}
@@ -166,10 +214,6 @@ header h1{font-size:1rem}
 .datepill bdi{font-family:var(--f-data);color:var(--live)}
 @keyframes rise{from{transform:translateY(10px)}to{transform:none}}
 .dcard{animation:rise .45s ease-out both}
-.dtile .bar{width:100%;height:4px;border-radius:4px;background:color-mix(in srgb,var(--ink) 10%,transparent);overflow:hidden;margin-top:6px}
-.dtile .bar i{display:block;height:100%;border-radius:4px;background:currentColor}
-.dtile.res .bar{color:var(--res)} .dtile.spec .bar{color:var(--spec)} .dtile.cons .bar{color:var(--cons)}
-.dtile .left{font-size:.68rem;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.hero img,.datepill .dot,.dcard{animation:none}}
 /* board view */
 .board-h{display:flex;flex-direction:column;gap:6px}
@@ -189,28 +233,11 @@ header h1{font-size:1rem}
 [dir="rtl"] .dcard-h small{text-align:right}
 .dcard-h .count{margin-inline-start:auto;font-size:.75rem;color:var(--muted)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.dtile{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;text-align:center;display:flex;flex-direction:column;gap:3px;align-items:center;min-width:0;background:var(--bg)}
-.dtile .code{font:600 .66rem var(--f-data);letter-spacing:.12em;color:var(--muted)}
-.dtile .lv{font-size:.72rem;color:var(--muted)}
-.dtile b{font-size:.98rem;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
-.dtile .ph{font:600 .8rem var(--f-data);color:#5ee0d0;direction:ltr;text-decoration:none}
-.dtile .tm{font:500 .7rem var(--f-data);color:var(--muted);direction:ltr}
-.dtile .call{display:none}
-.dtile.res{border-color:color-mix(in srgb,var(--res) 55%,transparent);background:var(--res-soft)} .dtile.res b{color:var(--res)}
-.dtile.spec{border-color:color-mix(in srgb,var(--spec) 55%,transparent);background:var(--spec-soft)} .dtile.spec b{color:var(--spec)}
-.dtile.cons{border-color:color-mix(in srgb,var(--cons) 55%,transparent);background:var(--cons-soft)} .dtile.cons b{color:var(--cons)}
-.dtile.none{border-style:dashed;opacity:.55} .dtile.none b{color:var(--muted)}
 
 /* phones: keep the three levels side by side like the wide board */
 @media (max-width:640px){
   .tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   .dcard{padding:12px;gap:10px;border-radius:16px}
-  .dtile{padding:8px 4px;border-radius:10px;gap:1px}
-  .dtile .code{font-size:.58rem;letter-spacing:.08em}
-  .dtile .lv{font-size:.66rem}
-  .dtile b{font-size:.8rem}
-  .dtile .ph{font-size:.66rem}
-  .dtile .tm{font-size:.6rem}
   .board-h h2{font-size:1.25rem}
   .addbtn{padding:8px 12px;font-size:.85rem}
 }
@@ -233,7 +260,7 @@ aside.side{display:none}
   .side .nav{display:flex;align-items:center;gap:10px;border:0;background:none;color:var(--ink);font:500 .9rem var(--f-body);
     padding:9px 10px;border-radius:10px;cursor:pointer;text-align:start;width:100%}
   .side .nav:hover{background:var(--raise)}
-  .side .nav[aria-current="true"]{background:var(--accent-soft);color:#fff;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent)}
+  .side .nav[aria-current="true"]{background:var(--accent-soft);color:var(--nav-on);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent)}
   .side .nav .n{margin-inline-start:auto;font:500 .7rem var(--f-data);background:var(--raise);color:var(--muted);border-radius:999px;padding:1px 8px}
 }
 </style>
@@ -267,6 +294,7 @@ aside.side{display:none}
   <symbol id="i-siren" viewBox="0 0 24 24"><path d="M7 18v-6a5 5 0 1 1 10 0v6M5 21h14v-3H5zM12 2v2M4.2 5.2l1.4 1.4M19.8 5.2l-1.4 1.4"/></symbol>
   <symbol id="i-tooth" viewBox="0 0 24 24"><path d="M7 3c-2 0-3.5 1.6-3.5 4 0 3 1.5 4 2 7s1 7 2.5 7 1.5-5 4-5 2.5 5 4 5 2-4 2.5-7 2-4 2-7c0-2.4-1.5-4-3.5-4-2 0-3 1-5 1S9 3 7 3Z"/></symbol>
   <symbol id="i-lungs" viewBox="0 0 24 24"><path d="M12 4v8M12 12c-1 1-2 1.5-3 1.5M12 12c1 1 2 1.5 3 1.5M8 7C5 7 3 12 3 16c0 2 1 4 3 4s3-1 3-3V9a2 2 0 0 0-1-2ZM16 7c3 0 5 5 5 9 0 2-1 4-3 4s-3-1-3-3V9a2 2 0 0 1 1-2Z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-clinic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 21v-4h6v4M12 7v4M10 9h4"/></symbol>
   <symbol id="i-clip" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M12 8v4M12 16h.01"/></symbol>
@@ -328,7 +356,7 @@ const T = {
       lock_t:"دخول الأطباء", lock_p:"يطلب منك مرة وحدة بس على هذا الجوال.", lock_b:"دخول",
       emp:"الرقم الوظيفي", pin:"آخر 4 أرقام من جوالك", hello:"أهلاً", signout:"خروج",
       board:"لوحة المناوبات", board_p:"المناوبون الحين حسب التخصص والمستوى", menu:"القائمة", specialties:"التخصصات",
-      prev:"اليوم السابق", clinics:"العيادات", next:"اليوم التالي", now:"الآن", day:"جدول اليوم كامل", next_roster:"ما فيه مناوبين مسجلين الحين. أقرب جدول يبدأ", show_it:"اعرضه",
+      prev:"اليوم السابق", unlisted:"غير مسجّل", clinics:"العيادات", next:"اليوم التالي", now:"الآن", day:"جدول اليوم كامل", next_roster:"ما فيه مناوبين مسجلين الحين. أقرب جدول يبدأ", show_it:"اعرضه",
       lock_bad:"الرقم الوظيفي أو آخر 4 أرقام غير صحيحة.", lock_locked:"محاولات كثيرة. انتظر 15 دقيقة وحاول مرة ثانية.",
       lock_inactive:"حسابك موقوف. راجع المشرف.", lock_net:"ما فيه اتصال. حاول مرة ثانية.",
       empty_now:"ما فيه مناوبين مسجلين لهذا الوقت.",
@@ -344,7 +372,7 @@ const T = {
       lock_t:"Doctor sign-in", lock_p:"You only need to do this once on this phone.", lock_b:"Sign in",
       emp:"Employee number", pin:"Last 4 digits of your mobile", hello:"Hello", signout:"Sign out",
       board:"On-call board", board_p:"Who is on call now, by specialty and level", menu:"Menu", specialties:"Specialties",
-      prev:"Previous day", clinics:"Clinics", next:"Next day", now:"Now", day:"Whole-day roster", next_roster:"No one is listed right now. The next roster starts", show_it:"Show it",
+      prev:"Previous day", unlisted:"Not listed", clinics:"Clinics", next:"Next day", now:"Now", day:"Whole-day roster", next_roster:"No one is listed right now. The next roster starts", show_it:"Show it",
       lock_bad:"Employee number or last 4 digits are incorrect.", lock_locked:"Too many attempts. Wait 15 minutes and try again.",
       lock_inactive:"Your access is paused. Contact the administrator.", lock_net:"No connection. Try again.",
       empty_now:"No one is listed on call right now.",
@@ -612,13 +640,12 @@ function renderOncall(q){
     const order = [...LEVELS, "oth"].filter(l => l !== "oth" || shown.some(r => r.lv === "oth"));
     const tiles = order.flatMap(l => {
       const docs = shown.filter(r => r.lv === l);
-      if (!docs.length) return q ? [] : [`<div class="dtile none"><span class="code">${CODE[l]}</span><span class="lv">${t(l)}</span><b>—</b></div>`];
-      return docs.map(r => `<div class="dtile ${l}"><span class="code">${CODE[l]}</span><span class="lv">${t(l)}</span>
-        <b>${esc(r.name)}</b>
-        ${r.phone ? `<a class="ph" href="tel:${esc(r.phone)}">${esc(r.phone)}</a>` : ""}
-        ${r.start ? `<span class="tm">${esc(r.start)}–${esc(r.end)}</span>` : ""}${progress(r)}
-        ${r.phone ? `<span class="call"><button data-copy="${esc(r.phone)}" aria-label="${t("copy")}">${icon("copy")}</button>
-          <a href="tel:${esc(r.phone)}" aria-label="${t("call")} ${esc(r.name)}">${icon("phone")}</a></span>` : ""}</div>`);
+      if (!docs.length) return q ? [] : [`<div class="dtile none ${l}"><div class="dt-head"><span class="av">—</span><div class="dt-id"><b>${t("unlisted")}</b><span class="badge">${CODE[l]} · ${t(l)}</span></div></div></div>`];
+      return docs.map(r => `<div class="dtile ${l}">
+        <div class="dt-head"><span class="av">${esc(initials(r.name))}</span><div class="dt-id"><b>${esc(r.name)}</b><span class="badge">${CODE[l]} · ${t(l)}</span></div></div>
+        ${r.start ? `<div class="dt-time">${icon("clock")}<bdi>${esc(r.start)}–${esc(r.end)}</bdi></div>` : ""}${progress(r)}
+        ${r.phone ? `<div class="dt-act"><a class="callbtn" href="tel:${esc(r.phone)}" aria-label="${t("call")} ${esc(r.name)}">${icon("phone")}<bdi>${esc(r.phone)}</bdi></a>
+          <button class="cp" data-copy="${esc(r.phone)}" aria-label="${t("copy")}">${icon("copy")}</button></div>` : ""}</div>`);
     }).join("");
     const other = lang === "ar" ? (DEPT_EN[d.dept] || "") : d.dept;
     return `<div class="dcard" style="animation-delay:${Math.min(hits, 12) * 40}ms"><div class="dcard-h"><span class="tile">${icon(deptIcon(d.dept))}</span>
@@ -657,6 +684,12 @@ function renderClinics(q){
   return depts.length || (q ? 0 : 1);
 }
 
+// Initials for the avatar: drop titles and "(example)", then the first letter of up to two words.
+function initials(name){
+  const w = String(name || "").replace(/\(.*?\)/g, "").replace(/^\s*(د\.|د |dr\.?)\s*/i, "").trim().split(/\s+/).filter(Boolean);
+  if (!w.length) return "؟";
+  return (w.length > 1 ? w[0][0] + w[1][0] : w[0].slice(0, 2)).toUpperCase();
+}
 const CODE = {res: "RES", spec: "SPEC", cons: "CONS", oth: "ON-CALL"};
 
 // How far into the shift we are, and what's left: "باقي 5س 20د". Shifts ending at or before their start run past midnight.
