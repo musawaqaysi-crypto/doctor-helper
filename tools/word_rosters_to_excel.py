@@ -64,7 +64,7 @@ def newest(name):
     hits = [f for f in glob.glob(f"{U}/*.docx") if re.fullmatch(r"[0-9a-f]{8}-" + re.escape(name) + r"\.docx", os.path.basename(f))]
     return max(hits, key=os.path.getmtime) if hits else None
 NAMES = ["GENERAL_SURGERY", "GENERAL_SURGERY_-_RESIDENT", "PEDIATRIC_SURGERY", "PSYCHIATRIC", "OBSTETRICS__GYNECOLOGY_RESIDENT",
-         "OBSTETRICS__GYNECOLOGY_SPECIALIST_AND_CONSULTANT", "ADULT_INTENSIVE_CARE_UNIT", "ANESTHESIA", "CARDIOLOGY", "EMERGENCY_DEPARTMENT", "ENT"]
+         "OBSTETRICS__GYNECOLOGY_SPECIALIST_AND_CONSULTANT", "ADULT_INTENSIVE_CARE_UNIT", "ANESTHESIA", "CARDIOLOGY", "EMERGENCY_DEPARTMENT", "ENT", "RADIOLOGY", "INTERNAL_MEDICINE", "OPHTHALMOLOGY"]
 
 def clinic_times(cell, st, en):
     # "Dr. Noor (8:00am—4:00pm)" carries its own hours; otherwise the column's hours
@@ -193,6 +193,45 @@ t = tables(F["ENT"]); book = phonebook(t)
 for r in t[0]:
     d = day(r[0]) if r else None
     if d and len(r) > 3: clinic("الأنف والأذن والحنجرة", d, r[3], "08:00", "16:00", "العيادة الخارجية", book)
+# Internal medicine: specialist + consultant on call; four clinics
+if F.get("INTERNAL_MEDICINE"):
+    t = tables(F["INTERNAL_MEDICINE"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if not d: continue
+        add("الباطنة", d, "أخصائي", r[2], "", "", "أخصائي مناوب", book)
+        add("الباطنة", d, "استشاري", r[3], "", "", "استشاري مناوب", book)
+        clinic("الباطنة", d, r[4], "08:00", "12:00", "صباحية", book)
+        clinic("الباطنة", d, r[5], "08:00", "16:00", "العيادة الافتراضية", book)
+        clinic("الباطنة", d, r[6], "13:00", "16:00", "مسائية", book)
+        if len(r) > 7: clinic("الباطنة", d, r[7], "08:00", "16:00", "عيادة الكبد", book)
+# Ophthalmology: on call with its own hours, morning/afternoon clinics
+if F.get("OPHTHALMOLOGY"):
+    t = tables(F["OPHTHALMOLOGY"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if not d: continue
+        clinic("العيون", d, r[2], "08:00", "12:00", "صباحية", book)
+        clinic("العيون", d, r[3], "13:00", "16:00", "مسائية", book)
+        if r[5].strip(): add("العيون", d, "مناوب", re.sub(r'\d.*', '', r[5]), "07:30", "19:30", "مناوب", book)
+# Radiology: doctors are written as codes; the code table maps them to names and phones
+if F.get("RADIOLOGY"):
+    t = tables(F["RADIOLOGY"]); codes = {}
+    for row in t[1][1:]:
+        for i in range(0, len(row) - 2, 3):
+            c, nm, ph = row[i].strip(), re.sub(r'\(.*?\)', '', row[i + 1]).strip(), re.findall(r'05\d{8}', row[i + 2])
+            if c: codes[c] = (re.sub(r'^\s*Dr\.?\s*', '', nm, flags=re.I).strip(), ph[0] if ph else "")
+    def radd(d, cell, lvl, st, en, note):
+        for c in [x.strip() for x in re.split(r'[-/,]', cell) if x.strip()]:
+            nm, ph = codes.get(c, (c, ""))
+            if c not in codes: unmatched.add(f"الأشعة: {c}")
+            rows.append(["الأشعة", d, lvl, "د. " + re.sub(r'\s+', ' ', nm).title(), ph, st, en, note])
+    mods = t[0][1][2:8]
+    for r in t[0][2:]:
+        d = day(r[0]) if r else None
+        if not d: continue
+        for i, m in enumerate(mods): radd(d, r[2 + i], "مناوب", "08:00", "16:00", f"صباحي · {m.strip()}")
+        radd(d, r[8], "أخصائي", "16:00", "08:00", "مناوب الأشعة")
 wb = Workbook(); ws = wb.active; ws.title = "المناوبات"; ws.sheet_view.rightToLeft = True
 ws.append(["القسم", "التاريخ", "المستوى", "الاسم", "الجوال", "من", "إلى", "ملاحظة"])
 for c in ws[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1C2230"); c.alignment = Alignment(horizontal="center")
