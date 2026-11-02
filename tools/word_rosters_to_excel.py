@@ -230,8 +230,7 @@ if F.get("RADIOLOGY"):
     for r in t[0][2:]:
         d = day(r[0]) if r else None
         if not d: continue
-        for i, m in enumerate(mods): radd(d, r[2 + i], "مناوب", "08:00", "16:00", f"صباحي · {m.strip()}")
-        radd(d, r[8], "أخصائي", "16:00", "08:00", "مناوب الأشعة")
+        radd(d, r[8], "مناوب", "", "", "مناوب الأشعة")
 wb = Workbook(); ws = wb.active; ws.title = "المناوبات"; ws.sheet_view.rightToLeft = True
 ws.append(["القسم", "التاريخ", "المستوى", "الاسم", "الجوال", "من", "إلى", "ملاحظة"])
 for c in ws[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1C2230"); c.alignment = Alignment(horizontal="center")
