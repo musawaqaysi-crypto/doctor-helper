@@ -215,6 +215,8 @@ header h1{font-size:1rem}
 .psteps li{counter-increment:st;font-size:.8rem;background:var(--raise);border:1px solid var(--line);border-radius:999px;padding:4px 10px 4px 12px}
 .psteps li::before{content:counter(st) ". ";font-weight:700;color:var(--accent)}
 .pphones{display:flex;gap:8px;flex-wrap:wrap} .pphones .callbtn{flex:0 1 auto;padding:8px 14px;--lvc:var(--accent);--lvs:var(--accent-soft)}
+.rccbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-inline-start:4px solid #dc2626;border-radius:14px;padding:12px 14px}
+.rccbar b{flex:1;min-width:120px} .rccbar .callbtn{flex:0 1 auto;padding:9px 16px;font-size:.95rem;--lvc:#dc2626;--lvs:#fde8e8}
 .pkey{font-size:.82rem;border-radius:10px;padding:8px 12px;background:var(--accent-soft);color:var(--ink)}
 .pimgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
 .pimg{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;cursor:zoom-in;padding:0;display:flex;flex-direction:column;text-align:start;font:inherit;color:var(--ink)}
@@ -722,7 +724,6 @@ const PATHS = [
    imgs: [["stroke-samtah.jpg", {ar: "مسار مستشفى صامطة · 6 خطوات", en: "Samtah hospital · 6 steps"}], ["stroke-rcc.jpg", {ar: "سير العمل مع RCC", en: "RCC workflow"}], ["stroke-cluster.jpg", {ar: "مسار تجمع جازان", en: "Jazan cluster pathway"}]]},
   {id: "stemi", color: "#dc2626", icon: "heart", k: "stemi mi acs chest pain pci cath thrombolysis rcc احتشاء قلب",
    t: {ar: "مسار احتشاء القلب STEMI", en: "STEMI pathway"}, sub: "RCC workflow",
-   phones: [["0173124985", "RCC"], ["8001188111", "RCC"]],
    steps: {ar: ["الطوارئ: تثبيت، ECG، تحاليل", "منسق RCC: يربط الاستشاري والإسعاف", "الاستشاري: STEMI؟ قسطرة أولية أو إذابة", "القبول", "المركز المتخصص: القسطرة مباشرة"],
            en: ["ED: stabilise, ECG, labs", "RCC coordinator: link consultant & ambulance", "Consultant: STEMI? PPCI or lysis", "Accepted", "Specialised centre: direct cath lab"]},
    key: {ar: "ECG خلال 10 دقائق من الوصول. للمؤهلين: الإذابة خلال 30 دقيقة من الوصول إذا نصح بها RCC. النقل لمستشفى الأمير محمد بن ناصر.", en: "ECG within 10 min of arrival. If eligible: fibrinolysis within 30 min, as advised by RCC. Transfer to Prince Mohammed Bin Nasser Hospital."},
@@ -742,7 +743,8 @@ const PATHS = [
 ];
 function renderPaths(q){
   const list = PATHS.filter(p => has(q, p.t.ar, p.t.en, p.sub, p.k, p.steps.ar.join(" "), p.steps.en.join(" ")));
-  const head = `<div class="board-h"><div class="top"><div><h2>${t("t_paths")}</h2><p>${t("paths_p")}</p></div></div></div>`;
+  const head = `<div class="board-h"><div class="top"><div><h2>${t("t_paths")}</h2><p>${t("paths_p")}</p></div></div></div>
+    <div class="rccbar"><b>${lang === "ar" ? "التواصل مع RCC" : "Contact RCC"}</b>${[["8001188111"], ["0173124985"]].map(([n]) => `<a class="callbtn" href="tel:${n}">${icon("phone")}<bdi>${n}</bdi></a>`).join("")}</div>`;
   document.getElementById("view").innerHTML = head + list.map(p => `<div class="pcard">
     <div class="pcard-h"><span class="tile" style="background:${p.color}">${icon(p.icon)}</span><span><b>${esc(L(p.t))}</b><small>${esc(p.sub)}</small></span></div>
     <ol class="psteps">${L(p.steps).map(x => `<li>${esc(x)}</li>`).join("")}</ol>
