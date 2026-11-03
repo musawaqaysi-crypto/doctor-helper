@@ -206,6 +206,16 @@ header h1{font-size:1rem}
   .callbtn svg.i{width:11px;height:11px}
   .cp{display:none}
 }
+/* RCC numbers on the front page, large */
+.rcc-main{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(135deg,#b91c1c,#dc2626);color:#fff;border-radius:18px;padding:16px 18px;box-shadow:0 8px 24px rgba(220,38,38,.25)}
+.rcc-t{display:flex;align-items:center;gap:12px;flex:1;min-width:200px}
+.rcc-ic{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center}
+.rcc-ic svg.i{width:26px;height:26px}
+.rcc-t b{display:block;font-size:1.5rem;letter-spacing:.06em;line-height:1.1}
+.rcc-t small{display:block;font-size:.85rem;opacity:.92}
+.rcc-nums{display:flex;gap:10px;flex-wrap:wrap}
+.rcc-nums a{white-space:nowrap;background:#fff;color:#b91c1c;text-decoration:none;font:700 1.55rem/1 var(--f-data);border-radius:14px;padding:12px 18px;letter-spacing:.02em;direction:ltr}
+@media (max-width:640px){.rcc-nums{width:100%}.rcc-nums a{flex:1;text-align:center;font-size:1.08rem;padding:12px 4px}}
 /* urgent-care pathways */
 .pcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .pcard-h{display:flex;align-items:center;gap:12px}
@@ -345,6 +355,10 @@ aside.side{display:none}
 <aside class="side" id="side"></aside>
 <main class="wrap">
   <div class="hero"><img src="img/hospital.jpg" alt="مستشفى صامطة العام"></div>
+  <div class="rcc-main">
+    <div class="rcc-t"><span class="rcc-ic"><svg class="i"><use href="#i-phone"/></svg></span><span><b>RCC</b><small data-t="rcc_sub"></small></span></div>
+    <div class="rcc-nums"><a href="tel:8001188111"><bdi>800 118 8111</bdi></a><a href="tel:0173124985"><bdi>017 312 4985</bdi></a></div>
+  </div>
   <label class="search">
     <svg class="i"><use href="#i-search"/></svg>
     <input id="q" type="search" autocomplete="off">
@@ -372,7 +386,7 @@ const CFG = window.DH_CONFIG || {};
 
 const T = {
   ar:{app:"مُناوِب", tag:"المناوبون والمراجع والبروتوكولات", other:"English",
-      t_oncall:"المناوبون", t_clinics:"العيادات", t_paths:"المسارات", paths_p:"مسارات الرعاية العاجلة المعتمدة · اضغط الصورة لتكبيرها", q_paths:"ابحث: stroke، STEMI، trauma…", open_full:"فتح بالحجم الكامل", t_links:"المراجع", t_protocols:"البروتوكولات", clinics_p:"العيادات الخارجية لكل قسم خلال اليوم", no_clinics:"ما فيه عيادات مسجلة لهذا اليوم.",
+      t_oncall:"المناوبون", t_clinics:"العيادات", t_paths:"المسارات", rcc_sub:"التواصل لكل مسارات الرعاية العاجلة", paths_p:"مسارات الرعاية العاجلة المعتمدة · اضغط الصورة لتكبيرها", q_paths:"ابحث: stroke، STEMI، trauma…", open_full:"فتح بالحجم الكامل", t_links:"المراجع", t_protocols:"البروتوكولات", clinics_p:"العيادات الخارجية لكل قسم خلال اليوم", no_clinics:"ما فيه عيادات مسجلة لهذا اليوم.",
       q_oncall:"ابحث عن تخصص أو اسم طبيب…", q_links:"ابحث: ECG، جرعة، أشعة…", q_protocols:"ابحث: sepsis، stroke…", q_clinics:"ابحث عن قسم أو طبيب…",
       all:"الكل", mine:"روابطي", personal:"رابط شخصي", name:"اسم الموقع", add:"إضافة", del:"حذف",
       res:"مقيم", spec:"أخصائي", cons:"استشاري", oth:"مناوب",
@@ -388,7 +402,7 @@ const T = {
       none:"ما فيه نتائج لهذا البحث",
       disclaimer:"مرجع سريع مبني على الإرشادات العالمية، ولا يغني عن سياسة المستشفى والتقييم السريري."},
   en:{app:"Munawib", tag:"On-call, references and protocols", other:"عربي",
-      t_oncall:"On-call", t_clinics:"Clinics", t_paths:"Pathways", paths_p:"Approved urgent-care pathways · tap an image to enlarge", q_paths:"Search: stroke, STEMI, trauma…", open_full:"Open full size", t_links:"References", t_protocols:"Protocols", clinics_p:"Outpatient clinics by department for the day", no_clinics:"No clinics listed for this day.",
+      t_oncall:"On-call", t_clinics:"Clinics", t_paths:"Pathways", rcc_sub:"Contact for all urgent-care pathways", paths_p:"Approved urgent-care pathways · tap an image to enlarge", q_paths:"Search: stroke, STEMI, trauma…", open_full:"Open full size", t_links:"References", t_protocols:"Protocols", clinics_p:"Outpatient clinics by department for the day", no_clinics:"No clinics listed for this day.",
       q_oncall:"Search a specialty or doctor…", q_links:"Search: ECG, dose, imaging…", q_protocols:"Search: sepsis, stroke…", q_clinics:"Search a department or doctor…",
       all:"All", mine:"My links", personal:"Personal link", name:"Site name", add:"Add", del:"Delete",
       res:"Resident", spec:"Specialist", cons:"Consultant", oth:"On duty",
@@ -743,8 +757,7 @@ const PATHS = [
 ];
 function renderPaths(q){
   const list = PATHS.filter(p => has(q, p.t.ar, p.t.en, p.sub, p.k, p.steps.ar.join(" "), p.steps.en.join(" ")));
-  const head = `<div class="board-h"><div class="top"><div><h2>${t("t_paths")}</h2><p>${t("paths_p")}</p></div></div></div>
-    <div class="rccbar"><b>${lang === "ar" ? "التواصل مع RCC" : "Contact RCC"}</b>${[["8001188111"], ["0173124985"]].map(([n]) => `<a class="callbtn" href="tel:${n}">${icon("phone")}<bdi>${n}</bdi></a>`).join("")}</div>`;
+  const head = `<div class="board-h"><div class="top"><div><h2>${t("t_paths")}</h2><p>${t("paths_p")}</p></div></div></div>`;
   document.getElementById("view").innerHTML = head + list.map(p => `<div class="pcard">
     <div class="pcard-h"><span class="tile" style="background:${p.color}">${icon(p.icon)}</span><span><b>${esc(L(p.t))}</b><small>${esc(p.sub)}</small></span></div>
     <ol class="psteps">${L(p.steps).map(x => `<li>${esc(x)}</li>`).join("")}</ol>
