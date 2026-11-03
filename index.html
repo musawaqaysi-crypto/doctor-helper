@@ -674,7 +674,7 @@ function renderOncall(q){
     ${viewDay ? `<button data-nav="0">${t("now")}</button>` : ""}<button data-nav="1">${t("next")}${icon("back", "flip2")}</button></div>`;
   const head = `<div class="board-h"><span class="datepill"><span class="dot"></span>${esc(today)}${viewDay ? "" : ` · <bdi>${hm(new Date())}</bdi>`}</span>${nav}
     <div class="top"><div><h2>${t("board")}</h2><p>${t("board_p")}</p></div>
-      <a class="addbtn" href="admin.html">${icon("plus")}${t("add")}</a></div></div>`;
+</div></div>`;
   let hits = 0;
   const cards = duty.depts.filter(d => cat === "all" || cat === d.dept).map(d => {
     const all = d.rows.map(r => ({...r, lv: levelOf(r)}));
