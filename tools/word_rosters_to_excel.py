@@ -23,6 +23,7 @@ def phonebook(tbls):
         for row in rows:
             for cell in row:
                 cell = re.sub(r'\([^)]*\)', ' ', cell)
+                cell = re.sub(r'(?<=\b0)\s+(?=5\d{8})', '', cell)
                 for m in re.finditer(r'((?:DR\.?\s*)?[A-Za-z][A-Za-z .\-]*?)\s*[-–]?\s*(05\d{8})', cell, re.I):
                     nm = re.sub(r'^\s*DR\.?\s*', '', m.group(1), flags=re.I).strip(" -–")
                     book[nm] = m.group(2)
@@ -50,7 +51,7 @@ def names(cell):
     out = []
     for n in re.split(r'/|,|&', cell):
         n = re.sub(r'^\s*DR\.?\s*', '', n.strip(), flags=re.I).strip()
-        if n and not re.search(r'ROD$|^-+$|^—$|ON\s*CALL|SPECIALIST', n, re.I): out.append(n)
+        if n and not re.search(r'ROD$|^-+$|^—$|ON\s*CALL|SPECIALIST|OPERATING|ROOM|VACATION|LEAVE|^OFF$', n, re.I): out.append(n)
     return out
 rows, unmatched = [], set()
 def add(dept, d, lvl, cell, st, en, note, book):
@@ -64,7 +65,7 @@ def newest(name):
     hits = [f for f in glob.glob(f"{U}/*.docx") if re.fullmatch(r"[0-9a-f]{8}-" + re.escape(name) + r"\.docx", os.path.basename(f))]
     return max(hits, key=os.path.getmtime) if hits else None
 NAMES = ["GENERAL_SURGERY", "GENERAL_SURGERY_-_RESIDENT", "PEDIATRIC_SURGERY", "PSYCHIATRIC", "OBSTETRICS__GYNECOLOGY_RESIDENT",
-         "OBSTETRICS__GYNECOLOGY_SPECIALIST_AND_CONSULTANT", "ADULT_INTENSIVE_CARE_UNIT", "ANESTHESIA", "CARDIOLOGY", "EMERGENCY_DEPARTMENT", "ENT", "RADIOLOGY", "INTERNAL_MEDICINE", "OPHTHALMOLOGY"]
+         "OBSTETRICS__GYNECOLOGY_SPECIALIST_AND_CONSULTANT", "ADULT_INTENSIVE_CARE_UNIT", "ANESTHESIA", "CARDIOLOGY", "EMERGENCY_DEPARTMENT", "ENT", "RADIOLOGY", "INTERNAL_MEDICINE", "OPHTHALMOLOGY", "DERMATOLOGY", "LABORATORY", "NEPHROLOGY-2", "ORTHOPEDIC_SURGERY", "UROLOGY"]
 
 def clinic_times(cell, st, en):
     # "Dr. Noor (8:00am—4:00pm)" carries its own hours; otherwise the column's hours
@@ -231,6 +232,56 @@ if F.get("RADIOLOGY"):
         d = day(r[0]) if r else None
         if not d: continue
         radd(d, r[8], "مناوب", "", "", "مناوب الأشعة")
+# Dermatology: morning/afternoon clinics, one on call
+if F.get("DERMATOLOGY"):
+    t = tables(F["DERMATOLOGY"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if not d: continue
+        clinic("الجلدية", d, r[2], "08:00", "12:00", "صباحية", book)
+        clinic("الجلدية", d, r[3], "13:00", "16:00", "مسائية", book)
+        add("الجلدية", d, "مناوب", r[4], "", "", "مناوب", book)
+# Laboratory & blood bank: morning duty, two doctors joined by "and"
+if F.get("LABORATORY"):
+    t = tables(F["LABORATORY"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if d: add("المختبر وبنك الدم", d, "مناوب", re.sub(r'\s+and\s+', '/', r[2], flags=re.I), "08:00", "16:00", "مناوب صباحي", book)
+# Nephrology: hemodialysis cover, 1st (specialist) and 2nd (consultant) on call, clinics
+if F.get("NEPHROLOGY-2"):
+    t = tables(F["NEPHROLOGY-2"]); book = phonebook(t)
+    for r in t[0]:
+        d = (day(r[0]) or day(r[1])) if len(r) > 1 else None
+        if not d: continue
+        add("الكلى", d, "مناوب", r[2], "07:30", "23:30", "وحدة الغسيل الكلوي", book)
+        add("الكلى", d, "أخصائي", r[3], "", "", "المناوب الأول", book)
+        add("الكلى", d, "استشاري", r[4], "", "", "المناوب الثاني", book)
+        if len(r) > 5: clinic("الكلى", d, r[5], "08:00", "16:00", "العيادة الخارجية", book)
+# Orthopedics: 1st on call day/night (specialist), 2nd on call 24h (consultant), clinic, residents day/night
+if F.get("ORTHOPEDIC_SURGERY"):
+    t = tables(F["ORTHOPEDIC_SURGERY"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if not d: continue
+        add("العظام", d, "أخصائي", r[2], "08:00", "20:00", "المناوب الأول نهاري", book)
+        add("العظام", d, "أخصائي", r[3], "20:00", "08:00", "المناوب الأول ليلي", book)
+        add("العظام", d, "استشاري", r[4], "", "", "المناوب الثاني 24 ساعة", book)
+        clinic("العظام", d, r[5], "08:00", "16:00", "العيادة الخارجية", book)
+        add("العظام", d, "مقيم", r[6], "08:00", "20:00", "مقيم نهاري", book)
+        if len(r) > 7: add("العظام", d, "مقيم", r[7], "20:00", "08:00", "مقيم ليلي", book)
+# Urology: clinics; specialist on call split by hours ("7.30 AM – 4 PM: X; 4 PM ONWARDS: Y"); consultant on call
+if F.get("UROLOGY"):
+    t = tables(F["UROLOGY"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if not d: continue
+        clinic("المسالك البولية", d, r[2], "08:00", "12:00", "صباحية", book)
+        clinic("المسالك البولية", d, r[3], "13:00", "16:00", "مسائية", book)
+        for seg in [x for x in r[4].split(";") if ":" in x]:
+            when, who = seg.rsplit(":", 1)
+            st, en = ("16:00", "07:30") if re.search(r'onward', when, re.I) else ("07:30", "16:00")
+            add("المسالك البولية", d, "أخصائي", who, st, en, "أخصائي مناوب", book)
+        add("المسالك البولية", d, "استشاري", r[5], "", "", "استشاري مناوب", book)
 wb = Workbook(); ws = wb.active; ws.title = "المناوبات"; ws.sheet_view.rightToLeft = True
 ws.append(["القسم", "التاريخ", "المستوى", "الاسم", "الجوال", "من", "إلى", "ملاحظة"])
 for c in ws[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1C2230"); c.alignment = Alignment(horizontal="center")
