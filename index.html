@@ -206,6 +206,26 @@ header h1{font-size:1rem}
   .callbtn svg.i{width:11px;height:11px}
   .cp{display:none}
 }
+/* urgent-care pathways */
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.pcard-h{display:flex;align-items:center;gap:12px}
+.pcard-h .tile{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:#fff}
+.pcard-h b{font-size:1.05rem;display:block} .pcard-h small{color:var(--muted);font-size:.78rem}
+.psteps{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none;counter-reset:st}
+.psteps li{counter-increment:st;font-size:.8rem;background:var(--raise);border:1px solid var(--line);border-radius:999px;padding:4px 10px 4px 12px}
+.psteps li::before{content:counter(st) ". ";font-weight:700;color:var(--accent)}
+.pphones{display:flex;gap:8px;flex-wrap:wrap} .pphones .callbtn{flex:0 1 auto;padding:8px 14px;--lvc:var(--accent);--lvs:var(--accent-soft)}
+.pkey{font-size:.82rem;border-radius:10px;padding:8px 12px;background:var(--accent-soft);color:var(--ink)}
+.pimgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.pimg{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;cursor:zoom-in;padding:0;display:flex;flex-direction:column;text-align:start;font:inherit;color:var(--ink)}
+.pimg img{width:100%;height:150px;object-fit:cover;object-position:top;display:block}
+.pimg span{font-size:.75rem;padding:6px 10px;background:var(--surface);color:var(--muted)}
+.lightbox{position:fixed;inset:0;background:rgba(5,10,20,.92);z-index:80;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.lightbox .lb-top{display:flex;align-items:center;gap:10px;padding:10px 14px;color:#fff}
+.lightbox .lb-top b{flex:1;font-size:.95rem}
+.lightbox .lb-top a,.lightbox .lb-top button{color:#fff;background:rgba(255,255,255,.12);border:0;border-radius:10px;padding:8px 12px;font:inherit;font-size:.82rem;text-decoration:none;cursor:pointer}
+.lightbox .lb-img{flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:0 10px 20px}
+.lightbox img{max-width:min(100%,1100px);height:auto;border-radius:10px;background:#fff}
 /* live touches */
 @keyframes kb{from{transform:scale(1)}to{transform:scale(1.08)}}
 .hero img{animation:kb 18s ease-in-out infinite alternate;transform-origin:70% 20%}
@@ -296,6 +316,7 @@ aside.side{display:none}
   <symbol id="i-lungs" viewBox="0 0 24 24"><path d="M12 4v8M12 12c-1 1-2 1.5-3 1.5M12 12c1 1 2 1.5 3 1.5M8 7C5 7 3 12 3 16c0 2 1 4 3 4s3-1 3-3V9a2 2 0 0 0-1-2ZM16 7c3 0 5 5 5 9 0 2-1 4-3 4s-3-1-3-3V9a2 2 0 0 1 1-2Z"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="i-clinic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 21v-4h6v4M12 7v4M10 9h4"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/></symbol>
   <symbol id="i-clip" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M12 8v4M12 16h.01"/></symbol>
   <symbol id="i-thermo" viewBox="0 0 24 24"><path d="M14 4v10.5a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></symbol>
@@ -337,6 +358,7 @@ aside.side{display:none}
     <button class="tab" role="tab" data-tab="oncall"><svg class="i"><use href="#i-steth"/></svg><span data-t="t_oncall"></span></button>
     <button class="tab" role="tab" data-tab="links"><svg class="i"><use href="#i-link"/></svg><span data-t="t_links"></span></button>
     <button class="tab" role="tab" data-tab="clinics"><svg class="i"><use href="#i-clinic"/></svg><span data-t="t_clinics"></span></button>
+    <button class="tab" role="tab" data-tab="paths"><svg class="i"><use href="#i-route"/></svg><span data-t="t_paths"></span></button>
     <button class="tab" role="tab" data-tab="protocols"><svg class="i"><use href="#i-clip"/></svg><span data-t="t_protocols"></span></button>
   </div>
 </nav>
@@ -348,7 +370,7 @@ const CFG = window.DH_CONFIG || {};
 
 const T = {
   ar:{app:"مُناوِب", tag:"المناوبون والمراجع والبروتوكولات", other:"English",
-      t_oncall:"المناوبون", t_clinics:"العيادات", t_links:"المراجع", t_protocols:"البروتوكولات", clinics_p:"العيادات الخارجية لكل قسم خلال اليوم", no_clinics:"ما فيه عيادات مسجلة لهذا اليوم.",
+      t_oncall:"المناوبون", t_clinics:"العيادات", t_paths:"المسارات", paths_p:"مسارات الرعاية العاجلة المعتمدة · اضغط الصورة لتكبيرها", q_paths:"ابحث: stroke، STEMI، trauma…", open_full:"فتح بالحجم الكامل", t_links:"المراجع", t_protocols:"البروتوكولات", clinics_p:"العيادات الخارجية لكل قسم خلال اليوم", no_clinics:"ما فيه عيادات مسجلة لهذا اليوم.",
       q_oncall:"ابحث عن تخصص أو اسم طبيب…", q_links:"ابحث: ECG، جرعة، أشعة…", q_protocols:"ابحث: sepsis، stroke…", q_clinics:"ابحث عن قسم أو طبيب…",
       all:"الكل", mine:"روابطي", personal:"رابط شخصي", name:"اسم الموقع", add:"إضافة", del:"حذف",
       res:"مقيم", spec:"أخصائي", cons:"استشاري", oth:"مناوب",
@@ -364,7 +386,7 @@ const T = {
       none:"ما فيه نتائج لهذا البحث",
       disclaimer:"مرجع سريع مبني على الإرشادات العالمية، ولا يغني عن سياسة المستشفى والتقييم السريري."},
   en:{app:"Munawib", tag:"On-call, references and protocols", other:"عربي",
-      t_oncall:"On-call", t_clinics:"Clinics", t_links:"References", t_protocols:"Protocols", clinics_p:"Outpatient clinics by department for the day", no_clinics:"No clinics listed for this day.",
+      t_oncall:"On-call", t_clinics:"Clinics", t_paths:"Pathways", paths_p:"Approved urgent-care pathways · tap an image to enlarge", q_paths:"Search: stroke, STEMI, trauma…", open_full:"Open full size", t_links:"References", t_protocols:"Protocols", clinics_p:"Outpatient clinics by department for the day", no_clinics:"No clinics listed for this day.",
       q_oncall:"Search a specialty or doctor…", q_links:"Search: ECG, dose, imaging…", q_protocols:"Search: sepsis, stroke…", q_clinics:"Search a department or doctor…",
       all:"All", mine:"My links", personal:"Personal link", name:"Site name", add:"Add", del:"Delete",
       res:"Resident", spec:"Specialist", cons:"Consultant", oth:"On duty",
@@ -690,6 +712,54 @@ function initials(name){
   if (!w.length) return "؟";
   return (w.length > 1 ? w[0][0] + w[1][0] : w[0].slice(0, 2)).toUpperCase();
 }
+// Urgent-care pathways (Jazan Health Cluster / RCC); images live in img/pathways
+const PATHS = [
+  {id: "stroke", color: "#2563eb", icon: "brain", k: "stroke cva code stroke tpa thrombectomy rcc جلطة دماغية",
+   t: {ar: "مسار الجلطة الدماغية", en: "Stroke pathway"}, sub: "Code Stroke · RCC",
+   steps: {ar: ["الفرز والتعرف (FAST)", "تفعيل كود الجلطة", "تقييم عاجل + CT / CTA", "التواصل مع RCC", "الإذابة IV-tPA للمؤهلين", "النقل للقسطرة أو وحدة الجلطات"],
+           en: ["Recognise & triage (FAST)", "Activate Code Stroke", "Urgent assessment + CT / CTA", "Contact RCC", "IV-tPA if eligible", "Transfer for thrombectomy / stroke unit"]},
+   key: {ar: "الوقت دماغ: الإذابة خلال 0–4.5 ساعة من آخر وقت كان فيه طبيعياً. سجّل آخر وقت طبيعي وافحص السكر.", en: "Time is brain: IV-tPA window 0–4.5 h from last known well. Record last known well and check glucose."},
+   imgs: [["stroke-samtah.jpg", {ar: "مسار مستشفى صامطة · 6 خطوات", en: "Samtah hospital · 6 steps"}], ["stroke-rcc.jpg", {ar: "سير العمل مع RCC", en: "RCC workflow"}], ["stroke-cluster.jpg", {ar: "مسار تجمع جازان", en: "Jazan cluster pathway"}]]},
+  {id: "stemi", color: "#dc2626", icon: "heart", k: "stemi mi acs chest pain pci cath thrombolysis rcc احتشاء قلب",
+   t: {ar: "مسار احتشاء القلب STEMI", en: "STEMI pathway"}, sub: "RCC workflow",
+   phones: [["0173124985", "RCC"], ["8001188111", "RCC"]],
+   steps: {ar: ["الطوارئ: تثبيت، ECG، تحاليل", "منسق RCC: يربط الاستشاري والإسعاف", "الاستشاري: STEMI؟ قسطرة أولية أو إذابة", "القبول", "المركز المتخصص: القسطرة مباشرة"],
+           en: ["ED: stabilise, ECG, labs", "RCC coordinator: link consultant & ambulance", "Consultant: STEMI? PPCI or lysis", "Accepted", "Specialised centre: direct cath lab"]},
+   key: {ar: "ECG خلال 10 دقائق من الوصول. للمؤهلين: الإذابة خلال 30 دقيقة من الوصول إذا نصح بها RCC. النقل لمستشفى الأمير محمد بن ناصر.", en: "ECG within 10 min of arrival. If eligible: fibrinolysis within 30 min, as advised by RCC. Transfer to Prince Mohammed Bin Nasser Hospital."},
+   imgs: [["stemi-rcc.jpg", {ar: "سير العمل مع RCC", en: "RCC workflow"}]]},
+  {id: "life", color: "#e11d48", icon: "bolt", k: "life saving moh code rcc transfer critical إنقاذ حياة",
+   t: {ar: "مسار إنقاذ الحياة", en: "Life-saving pathway"}, sub: "RCC workflow · MOH code",
+   steps: {ar: ["منسق RCC يبدأ: يتواصل مع الفرق المناوبة", "استشاري RCC: نصيحة طبية، فريق النقل، تحديد الوجهة", "مركز النقل: يرتب الإسعاف", "الطوارئ: تجهيز النقل بعد استلام رمز الوزارة", "المركز المتخصص حسب الحالة"],
+           en: ["RCC coordinator starts: contacts on-call teams", "RCC consultant: advice, transport team, destination", "Transport centre: arranges ambulance", "ED: prepare transfer after MOH code", "Specialised centre as per case"]},
+   key: {ar: "الطوارئ تبدأ التقييم والعلاج وتتواصل مع RCC، وتجهز فريق النقل فور استلام رمز الوزارة.", en: "ED assesses, starts treatment, contacts RCC, and prepares the transport team once the MOH code is received."},
+   imgs: []},
+  {id: "trauma", color: "#7c3aed", icon: "bone", k: "trauma injury fast ct blood trauma code rcc إصابات حوادث",
+   t: {ar: "مسار الإصابات Trauma", en: "Trauma pathway"}, sub: "RCC workflow",
+   steps: {ar: ["الطوارئ: تثبيت، تحاليل، FAST", "CT عند الطلب، دم عند الحاجة", "تفعيل كود الإصابات", "منسق RCC ثم الاستشاري: مستوى الإصابة، العمليات", "المركز المتخصص: تجهيز العمليات"],
+           en: ["ED: stabilise, labs, FAST", "CT if requested, blood if required", "Activate trauma code", "RCC coordinator → consultant: trauma level, OR", "Specialised centre: prepare OR"]},
+   key: {ar: "لا تأخر النقل لإجراء فحوصات غير ضرورية. الطوارئ تتواصل مع RCC مبكراً.", en: "Do not delay transfer for non-essential tests. Contact RCC early."},
+   imgs: [["trauma-rcc.jpg", {ar: "سير العمل مع RCC", en: "RCC workflow"}]]},
+];
+function renderPaths(q){
+  const list = PATHS.filter(p => has(q, p.t.ar, p.t.en, p.sub, p.k, p.steps.ar.join(" "), p.steps.en.join(" ")));
+  const head = `<div class="board-h"><div class="top"><div><h2>${t("t_paths")}</h2><p>${t("paths_p")}</p></div></div></div>`;
+  document.getElementById("view").innerHTML = head + list.map(p => `<div class="pcard">
+    <div class="pcard-h"><span class="tile" style="background:${p.color}">${icon(p.icon)}</span><span><b>${esc(L(p.t))}</b><small>${esc(p.sub)}</small></span></div>
+    <ol class="psteps">${L(p.steps).map(x => `<li>${esc(x)}</li>`).join("")}</ol>
+    <div class="pkey">${esc(L(p.key))}</div>
+    ${(p.phones || []).length ? `<div class="pphones">${p.phones.map(([n, l]) => `<a class="callbtn" href="tel:${n}">${icon("phone")}<bdi>${n}</bdi> · ${l}</a>`).join("")}</div>` : ""}
+    <div class="pimgs" ${p.imgs.length ? "" : "hidden"}>${p.imgs.map(([f, cap]) => `<button class="pimg" data-img="img/pathways/${f}" data-cap="${esc(L(p.t))} · ${esc(L(cap))}"><img src="img/pathways/${f}" alt="${esc(L(cap))}" loading="lazy"><span>${esc(L(cap))}</span></button>`).join("")}</div>
+  </div>`).join("");
+  return list.length;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest(".pimg"); if (!b) return;
+  const lb = document.createElement("div"); lb.className = "lightbox";
+  lb.innerHTML = `<div class="lb-top"><b>${b.dataset.cap}</b><a href="${b.dataset.img}" target="_blank" rel="noopener">${t("open_full")}</a><button aria-label="close">✕</button></div><div class="lb-img"><img src="${b.dataset.img}" alt=""></div>`;
+  lb.addEventListener("click", ev => { if (ev.target === lb || ev.target.closest("button")) lb.remove(); });
+  document.body.append(lb);
+});
+
 const CODE = {res: "RES", spec: "SPEC", cons: "CONS", oth: "ON-CALL"};
 
 // How far into the shift we are, and what's left: "باقي 5س 20د". Shifts ending at or before their start run past midnight.
@@ -716,7 +786,7 @@ const DEPT_RULES = [
 const deptIcon = d => (DEPT_RULES.find(([rx]) => rx.test(d) || rx.test(DEPT_EN[d] || "")) || [0, "steth"])[1];
 
 function renderSide(){
-  const navs = [["oncall", "steth", t("t_oncall")], ["clinics", "clinic", t("t_clinics")], ["links", "link", t("t_links")], ["protocols", "clip", t("t_protocols")]];
+  const navs = [["oncall", "steth", t("t_oncall")], ["clinics", "clinic", t("t_clinics")], ["paths", "route", t("t_paths")], ["links", "link", t("t_links")], ["protocols", "clip", t("t_protocols")]];
   const depts = tab === "oncall" && dutySrc !== "locked" ? duty.depts : [];
   document.getElementById("side").innerHTML = `
     <div class="brand"><img class="lockup" src="img/lockup.png" alt="مستشفى صامطة العام"><span><b>${t("app")}</b><small>${t("tag")}</small></span></div>
@@ -788,7 +858,7 @@ function render(){
   qi.placeholder = t("q_" + tab); qi.setAttribute("aria-label", t("q_" + tab));
   renderChips();
   const q = qi.value.trim().toLowerCase();
-  const n = tab === "oncall" ? renderOncall(q) : tab === "clinics" ? renderClinics(q) : tab === "links" ? renderLinks(q) : renderProtocols(q);
+  const n = tab === "oncall" ? renderOncall(q) : tab === "clinics" ? renderClinics(q) : tab === "paths" ? renderPaths(q) : tab === "links" ? renderLinks(q) : renderProtocols(q);
   const e = document.getElementById("empty");
   e.textContent = t("none"); e.hidden = !(q && !n);
   renderSide();
@@ -831,7 +901,7 @@ document.addEventListener("click", e => {
 });
 
 if (!T[lang]) lang = "ar";
-if (!["oncall", "clinics", "links", "protocols"].includes(tab)) tab = "oncall";
+if (!["oncall", "clinics", "paths", "links", "protocols"].includes(tab)) tab = "oncall";
 loadDuty();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
