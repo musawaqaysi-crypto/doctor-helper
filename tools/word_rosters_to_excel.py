@@ -49,7 +49,7 @@ def day(s):
 def names(cell):
     cell = re.sub(r'\([^)]*\)', '', cell)
     out = []
-    for n in re.split(r'/|,|&', cell):
+    for n in re.split(r'/|,|&|\+', cell):
         n = re.sub(r'^\s*DR\.?\s*', '', n.strip(), flags=re.I).strip()
         if n and not re.search(r'ROD$|^-+$|^—$|ON\s*CALL|SPECIALIST|OPERATING|ROOM|VACATION|LEAVE|^OFF$', n, re.I): out.append(n)
     return out
@@ -65,7 +65,7 @@ def newest(name):
     hits = [f for f in glob.glob(f"{U}/*.docx") if re.fullmatch(r"[0-9a-f]{8}-" + re.escape(name) + r"\.docx", os.path.basename(f))]
     return max(hits, key=os.path.getmtime) if hits else None
 NAMES = ["GENERAL_SURGERY", "GENERAL_SURGERY_-_RESIDENT", "PEDIATRIC_SURGERY", "PSYCHIATRIC", "OBSTETRICS__GYNECOLOGY_RESIDENT",
-         "OBSTETRICS__GYNECOLOGY_SPECIALIST_AND_CONSULTANT", "ADULT_INTENSIVE_CARE_UNIT", "ANESTHESIA", "CARDIOLOGY", "EMERGENCY_DEPARTMENT", "ENT", "RADIOLOGY", "INTERNAL_MEDICINE", "OPHTHALMOLOGY", "DERMATOLOGY", "LABORATORY", "NEPHROLOGY-2", "ORTHOPEDIC_SURGERY", "UROLOGY"]
+         "OBSTETRICS__GYNECOLOGY_SPECIALIST_AND_CONSULTANT", "ADULT_INTENSIVE_CARE_UNIT", "ANESTHESIA", "CARDIOLOGY", "EMERGENCY_DEPARTMENT", "ENT", "RADIOLOGY", "INTERNAL_MEDICINE", "OPHTHALMOLOGY", "DERMATOLOGY", "LABORATORY", "NEPHROLOGY-2", "ORTHOPEDIC_SURGERY", "UROLOGY", "NEUROLOGY", "DENTAL_DUTY", "EBOLA", "PEDIATRIC_SPECIALIST_AND_CONSULTANT"]
 
 def clinic_times(cell, st, en):
     # "Dr. Noor (8:00am—4:00pm)" carries its own hours; otherwise the column's hours
@@ -282,6 +282,46 @@ if F.get("UROLOGY"):
             st, en = ("16:00", "07:30") if re.search(r'onward', when, re.I) else ("07:30", "16:00")
             add("المسالك البولية", d, "أخصائي", who, st, en, "أخصائي مناوب", book)
         add("المسالك البولية", d, "استشاري", r[5], "", "", "استشاري مناوب", book)
+# Neurology: 24h on call, clinic
+if F.get("NEUROLOGY"):
+    t = tables(F["NEUROLOGY"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if not d: continue
+        add("الأعصاب", d, "مناوب", r[2], "", "", "مناوب 24 ساعة", book)
+        clinic("الأعصاب", d, r[3], "08:00", "16:00", "العيادة الخارجية", book)
+# Dental: daily duty per service
+if F.get("DENTAL_DUTY"):
+    t = tables(F["DENTAL_DUTY"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if not d: continue
+        add("الأسنان", d, "مناوب", r[2], "", "", "علاج العصب (ENDO)", book)
+        add("الأسنان", d, "مناوب", r[3], "", "", "جراحة الوجه والفكين (OMFS)", book)
+        add("الأسنان", d, "مناوب", r[4], "", "", "OMFS و ENDO · الرعاية الأولية", book)
+# Ebola team: one on call per day
+if F.get("EBOLA"):
+    t = tables(F["EBOLA"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if d: add("فريق الإيبولا", d, "مناوب", r[2], "", "", "مناوب", book)
+# Pediatrics: morning call, NICU, on call (specialists), consultant on call, clinic
+if F.get("PEDIATRIC_SPECIALIST_AND_CONSULTANT"):
+    t = tables(F["PEDIATRIC_SPECIALIST_AND_CONSULTANT"]); book = phonebook(t)
+    for r in t[0]:
+        d = day(r[0]) if r else None
+        if not d: continue
+        add("الأطفال", d, "أخصائي", r[2], "08:00", "16:00", "المناوب الصباحي", book)
+        add("الأطفال", d, "أخصائي", r[3], "", "", "حديثي الولادة NICU", book)
+        add("الأطفال", d, "أخصائي", r[4], "", "", "أخصائي مناوب", book)
+        add("الأطفال", d, "استشاري", r[5], "", "", "استشاري مناوب", book)
+        clinic("الأطفال", d, r[6], "08:00", "16:00", "العيادة الخارجية", book)
+# Corrections the user gave for numbers missing or mistyped in the rosters
+PHONE_FIX = {"sofian": "0501552909"}
+for r in rows:
+    r[3] = re.sub(r'^د\. D\s*R\.?\s*', 'د. ', r[3], flags=re.I)
+    k = key(r[3].replace("د. ", "").split()[0]) if r[3].replace("د. ", "").split() else ""
+    if not r[4] and k in PHONE_FIX: r[4] = PHONE_FIX[k]; unmatched.discard(f"{r[0]}: {r[3].replace('د. ', '').upper()}"); unmatched.discard(f"{r[0]}: {r[3].replace('د. ', '')}")
 wb = Workbook(); ws = wb.active; ws.title = "المناوبات"; ws.sheet_view.rightToLeft = True
 ws.append(["القسم", "التاريخ", "المستوى", "الاسم", "الجوال", "من", "إلى", "ملاحظة"])
 for c in ws[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1C2230"); c.alignment = Alignment(horizontal="center")
