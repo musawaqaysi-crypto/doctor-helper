@@ -589,7 +589,7 @@ async function loadDay(){
   $("day-list").innerHTML = depts.length ? `<div style="display:flex;flex-direction:column;gap:10px">` + depts.map(d => `
     <div class="dept"><div class="dept-h">${esc(d)}<span>${by[d].length} طبيب</span></div>` +
     by[d].map(r => `<div class="doc"><span class="lvl ${r.level}">${LV[r.level]}</span>
-      <div class="txt">${esc(r.name)}<div class="sub">${r.phone ? `<bdi>${esc(r.phone)}</bdi>` : ""}${r.start_t ? ` · <bdi>${r.start_t}–${r.end_t}</bdi>` : ""}</div></div>
+      <div class="txt">${esc(r.name)}<div class="sub">${r.note ? `${esc(r.note)} · ` : ""}${r.phone ? `<bdi>${esc(r.phone)}</bdi>` : ""}${r.start_t ? ` · <bdi>${r.start_t}–${r.end_t}</bdi>` : ""}</div></div>
       <button class="icon-btn ed" data-edit="${r.id}" aria-label="تعديل ${esc(r.name)}">${icon("edit")}</button>
       <button class="icon-btn" data-del="${r.id}" aria-label="حذف ${esc(r.name)}">${icon("trash")}</button></div>`).join("") + `</div>`).join("") + `</div>`
     : `<p class="empty">ما فيه مناوبات مسجلة لهذا اليوم.</p>`;
@@ -605,9 +605,12 @@ $("day-list").onclick = async e => {
   if (sv) {
     const box = sv.closest(".doc"), v = k => box.querySelector(`[data-k="${k}"]`).value;
     if (!v("name").trim() || !v("dept").trim()) return;
+    // a clinic tag keeps the row off the on-call board, so it goes when the row becomes an on-call level
+    let note = v("note").trim();
+    if (v("level") !== "oth" && /^عيادة/.test(note)) note = "";
     sv.disabled = true;
     const { error } = await sb.from("duty").update({ dept: v("dept").trim(), level: v("level"), name: v("name").trim(),
-      phone: v("phone").replace(/[^\d+]/g, ""), start_t: v("start"), end_t: v("end") }).eq("id", +sv.dataset.save);
+      phone: v("phone").replace(/[^\d+]/g, ""), start_t: v("start"), end_t: v("end"), note }).eq("id", +sv.dataset.save);
     if (error) { sv.disabled = false; sv.textContent = "ما انحفظ، حاول مرة ثانية"; return; }
     return loadDay();
   }
@@ -623,6 +626,7 @@ function editRow(box, r){
     <div class="field"><label>القسم</label><input data-k="dept" list="depts" value="${esc(r.dept)}"></div>
     <div class="field"><label>المستوى</label><select data-k="level">${Object.entries(LV).map(([k, l]) => `<option value="${k}" ${r.level === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
     <div class="field"><label>الاسم</label><input data-k="name" value="${esc(r.name)}"></div>
+    <div class="field"><label>النوع (يبدأ بـ «عيادة» = يظهر في العيادات فقط)</label><input data-k="note" value="${esc(r.note || "")}"></div>
     <div class="field"><label>الجوال</label><input data-k="phone" dir="ltr" inputmode="tel" value="${esc(r.phone || "")}"></div>
     <div class="field"><label>من</label><input data-k="start" type="time" value="${esc((r.start_t || "").slice(0, 5))}"></div>
     <div class="field"><label>إلى</label><input data-k="end" type="time" value="${esc((r.end_t || "").slice(0, 5))}"></div>
