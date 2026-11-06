@@ -198,6 +198,20 @@ td.num{font-family:var(--f-data);direction:ltr;text-align:right}
         <button class="btn ghost" id="pm-cancel">إلغاء</button>
       </div>
     </div>
+    <div id="auto-box" hidden style="display:flex;flex-direction:column;gap:12px">
+      <div class="msg ok"><svg class="i"><use href="#i-check"/></svg><div>
+        <b>قرأت الجدول تلقائياً.</b> راجع القسم ونوع كل عمود ووقته، وعدّل إذا لزم، وبعدها «جهّز للحفظ».</div></div>
+      <div class="row">
+        <div class="field"><label for="au-dept">القسم</label><input id="au-dept" list="depts" placeholder="مثل: الباطنة"></div>
+        <div class="field" style="max-width:260px"><label>الأيام</label><div id="au-days" style="padding:10px 0"></div></div>
+      </div>
+      <div class="tablewrap"><table id="au-table"></table></div>
+      <div class="row">
+        <button class="btn primary" id="au-go"><svg class="i"><use href="#i-check"/></svg>جهّز للحفظ</button>
+        <button class="btn ghost" id="au-manual">ربط الأعمدة يدوياً</button>
+        <button class="btn ghost" id="au-cancel">إلغاء</button>
+      </div>
+    </div>
     <div id="preview" hidden>
       <div class="summary" id="up-sum"></div>
       <div class="tablewrap"><table id="up-table"></table></div>
@@ -406,7 +420,7 @@ $("tpl").onclick = () => {
   XLSX.writeFile(wb, "نموذج-جدول-المناوبات.xlsx");
 };
 async function readFile(f){
-  $("pdf-box").hidden = true;
+  $("pdf-box").hidden = true; $("auto-box").hidden = true;
   if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") return readPdf(f);
   if (/\.docx$/i.test(f.name)) return readDocx(f);
   try {
@@ -498,7 +512,7 @@ async function readPdf(f){
     if (!grid.length) return msg("up-msg", "err", "ما لقيت نص في الملف.");
     pdfGrid = grid;
     msg("up-msg", "ok", `قرأت ${pdf.numPages} صفحة، ${grid.length} سطر و${width} عمود${ocrPages ? ` (${ocrPages} صفحة مصوّرة بالـ OCR)` : ""}.`);
-    renderPdfMap();
+    if (!(await autoRead(grid, f.name))) renderPdfMap();
   } catch (e) { msg("up-msg", "err", "ما قدرت أقرأ الـ PDF. تأكد إن النت شغال وحاول مرة ثانية."); }
 }
 
@@ -525,10 +539,159 @@ async function readDocx(f){
     const width = Math.max(...grid.map(r => r.length));
     pdfGrid = grid.map(r => [...r, ...Array(width - r.length).fill("")]);
     msg("up-msg", "ok", `قرأت ${pdfGrid.length} سطر و${width} عمود من ملف Word.`);
-    renderPdfMap();
+    if (!(await autoRead(pdfGrid, f.name))) renderPdfMap();
   } catch { msg("up-msg", "err", "ما قدرت أقرأ ملف Word. تأكد إنه .docx (مو .doc القديم)."); }
 }
 
+
+// ---------- automatic reading of a department roster (Word / PDF) ----------
+// The department comes from the file name, each column's level, hours and label from its header,
+// and phone numbers from the file's own directory or from earlier rosters.
+const DEPT_KEYS = [[/pediatric\s*surg|paediatric\s*surg|جراحة\s*الأطفال/i, "جراحة الأطفال"], [/general\s*surg|الجراحة\s*العامة/i, "الجراحة العامة"],
+  [/internal\s*med|باطن/i, "الباطنة"], [/ortho|عظام/i, "العظام"], [/obst|gyn|نساء|ولادة/i, "النساء والولادة"], [/pediatric|paediatric|أطفال/i, "الأطفال"],
+  [/intensive|\bicu\b|عناية/i, "العناية المركزة"], [/an(a)?esth|تخدير/i, "التخدير"], [/cardio|قلب/i, "القلب"], [/emergency|طوارئ/i, "الطوارئ"],
+  [/\bent\b|أنف/i, "الأنف والأذن والحنجرة"], [/radiolog|أشعة/i, "الأشعة"], [/ophthal|عيون/i, "العيون"], [/dermat|جلدية/i, "الجلدية"],
+  [/laborator|\blab\b|مختبر/i, "المختبر وبنك الدم"], [/nephro|كلى/i, "الكلى"], [/urolog|مسالك/i, "المسالك البولية"], [/neurolog|أعصاب/i, "الأعصاب"],
+  [/dental|أسنان/i, "الأسنان"], [/psychiat|نفسي/i, "الطب النفسي"], [/ebola|إيبولا/i, "فريق الإيبولا"]];
+const guessDept = s => (DEPT_KEYS.find(([re]) => re.test(String(s).replace(/[_\-.]+/g, " "))) || [null, ""])[1];
+const AU_KIND = [["", "تجاهل"], ["res", "مقيم"], ["spec", "أخصائي"], ["cons", "استشاري"], ["oth", "مناوب"], ["clinic", "عيادة"]];
+function headTimes(h){
+  const s = String(h).toLowerCase().replace(/\s+/g, " ");
+  const T = String.raw`(\d{1,2})(?:[:.](\d{2}))?\s*(a\s?\.?\s?m\.?|p\s?\.?\s?m\.?|ص|م)?`;
+  const m = s.match(new RegExp(T + String.raw`\s*(?:to|-|–|—|إلى|الى|till|until)\s*` + T));
+  if (!m) return null;
+  const c = (hh, mm, ap) => { let x = +hh % 24; if (ap) x = (+hh % 12) + (/p|م/.test(ap) ? 12 : 0); return `${String(x).padStart(2, "0")}:${mm || "00"}`; };
+  return [c(m[1], m[2], m[3]), c(m[4], m[5], m[6])];
+}
+function headKind(h){
+  const s = String(h).toLowerCase();
+  if (/post\s*call|round|remark|note|ملاحظ|leave|vacation|إجاز|اجاز|\boff\b|annual/.test(s)) return "";
+  if (/opd|clinic|عياد/.test(s)) return "clinic";
+  if (/consult|استشار|3rd|third/.test(s)) return "cons";
+  if (/special|regist|أخصائ|اخصائ|إخصائ|نائب|2nd|second/.test(s)) return "spec";
+  if (/resident|مقيم|1st|first|\br\d\b|intern|امتياز/.test(s)) return "res";
+  if (/on\s*-?\s*cal|duty|مناوب|doctor/.test(s)) return "oth";
+  return "";
+}
+function clinicLabel(h){
+  const s = String(h).toLowerCase();
+  if (/hepat|liver|كبد/.test(s)) return "عيادة الكبد";
+  if (/virt|vert|افتراض/.test(s)) return "العيادة الافتراضية";
+  if (/morn|صباح/.test(s)) return "صباحية";
+  if (/after|even|مساء|مسائ/.test(s)) return "مسائية";
+  return String(h).replace(/opd|clinic|عيادة|\d{1,2}([:.]\d{2})?\s*(am|pm)?|to/gi, " ").replace(/\s+/g, " ").trim() || "العيادة الخارجية";
+}
+function slotDefaults(head){
+  const kind = headKind(head); let t = headTimes(head);
+  if (kind === "clinic" && !t) { const l = clinicLabel(head); t = l === "صباحية" ? ["08:00", "12:00"] : l === "مسائية" ? ["13:00", "16:00"] : ["08:00", "16:00"]; }
+  return { kind, st: t ? t[0] : "", en: t ? t[1] : "" };
+}
+function slotNote(kind, st, head){
+  if (kind === "clinic") return "عيادة · " + clinicLabel(head);
+  const base = kind === "cons" ? "استشاري مناوب" : kind === "spec" ? "أخصائي مناوب" : kind === "res" ? "مقيم" : "مناوب";
+  if (!st) return base;
+  const h = +st.slice(0, 2);
+  return base + (h >= 5 && h < 15 ? " نهاري" : " ليلي");
+}
+// names in a cell: "DR. SARA / EMAN (0501234567)" -> [{name, phone}]
+function cellNames(cell){
+  const out = [];
+  String(cell || "").split(/\/|,|&|\+|\n|\band\b|،/i).forEach(part => {
+    const ph = (part.replace(/(?<=\b0)\s+(?=5\d{8})/, "").match(/05\d{8}/) || [""])[0];
+    let n = part.replace(/\([^)]*\)/g, " ").replace(/0?5\d{8}/g, " ").replace(/^\s*(dr|د)\s*\.?\s*/i, "").replace(/[-–—:]+$/g, "").replace(/\s+/g, " ").trim();
+    if (!n || /^(off|leave|vacation|nil|none|n\/a|rod|-+|—+|\.+)$/i.test(n) || /on\s*call|specialist|consultant|resident|operating|room|annual/i.test(n)) return;
+    out.push({ name: n, phone: ph });
+  });
+  return out;
+}
+const akey = s => String(s).toLowerCase().replace(/^\s*(dr|د)\s*\.?\s*/i, "").split(/\s+/)[0].replace(/[^a-z؀-ۿ]/g, "");
+function similar(a, b){
+  if (a === b) return 1; if (!a || !b) return 0;
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return 1 - d[a.length][b.length] / Math.max(a.length, b.length);
+}
+let known = null; // earlier roster names → {name, phone, dept}
+async function loadKnown(){
+  if (known) return known;
+  known = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data } = await sb.from("duty").select("name,phone,dept,day").order("day", { ascending: false }).range(from, from + 999);
+    if (!data || !data.length) break;
+    data.forEach(r => known.push({ k: akey(r.name), name: r.name.replace(/^\s*د\.\s*/, ""), phone: r.phone || "", dept: r.dept }));
+    if (data.length < 1000) break;
+  }
+  return known;
+}
+function matchName(raw, dept, book){
+  const k = akey(raw);
+  const pick = list => { let best = null, sc = 0; list.forEach(x => { const r = similar(k, x.k); if (r > sc || (r === sc && !best?.phone && x.phone)) { best = x; sc = r; } }); return sc >= 0.8 ? best : null; };
+  const hit = pick(book) || pick(known.filter(x => x.dept === dept && x.phone)) || pick(known.filter(x => x.phone)) || pick(known.filter(x => x.dept === dept));
+  const title = raw.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
+  return { name: hit ? hit.name : title, phone: hit?.phone || "" };
+}
+let auto = null;
+async function autoRead(grid, fileName){
+  const isDate = c => !!parseDay(String(c).replace(/\s+/g, ""));
+  const first = grid.findIndex(r => r.some(isDate));
+  if (first < 1) return false;
+  const dateCol = grid[first].findIndex(isDate), width = Math.max(...grid.map(r => r.length));
+  const head = [...Array(width).keys()].map(c => [...new Set(grid.slice(0, first).map(r => String(r[c] || "").trim()).filter(Boolean))].join(" "));
+  const slots = [];
+  head.forEach((h, c) => {
+    if (c === dateCol || !h || /^(day|date|اليوم|التاريخ)$/i.test(h)) return;
+    const prev = slots.at(-1);
+    if (prev && prev.head === h && prev.cols.at(-1) === c - 1) return prev.cols.push(c);
+    const d = slotDefaults(h); slots.push({ head: h, cols: [c], ...d });
+  });
+  if (!slots.some(x => x.kind)) return false;
+  // phone directory inside the file: "Name 05xxxxxxxx" anywhere, or a row of phones under a row of names
+  const book = [];
+  grid.forEach((r, i) => r.forEach((cell, j) => {
+    cellNames(cell).forEach(x => x.phone && book.push({ k: akey(x.name), name: x.name, phone: x.phone }));
+    const below = grid[i + 1]?.[j];
+    if (below && /^\s*05\d{8}\s*$/.test(below) && cell && !/05\d{8}/.test(cell)) book.push({ k: akey(cell), name: cell.replace(/^\s*dr\.?\s*/i, ""), phone: below.trim() });
+  }));
+  const rows = grid.slice(first).filter(r => isDate(r[dateCol]));
+  auto = { slots, rows, dateCol, book };
+  await loadKnown();
+  $("au-dept").value = guessDept(fileName) || guessDept(grid.slice(0, first).flat().join(" "));
+  const days = rows.map(r => parseDay(String(r[dateCol]).replace(/\s+/g, ""))).sort();
+  $("au-days").innerHTML = `<bdi>${days[0]}</bdi> ← <bdi>${days.at(-1)}</bdi> (${days.length} يوم)`;
+  $("au-table").innerHTML = `<tr><th>العمود في الملف</th><th>النوع</th><th>من</th><th>إلى</th><th>مثال</th></tr>` + slots.map((x, i) => `<tr data-s="${i}">
+    <td>${esc(x.head)}</td>
+    <td><select data-k="kind" style="min-width:100px;padding:6px">${AU_KIND.map(([v, n]) => `<option value="${v}"${v === x.kind ? " selected" : ""}>${n}</option>`).join("")}</select></td>
+    <td><input data-k="st" type="time" value="${x.st}" style="padding:6px"></td><td><input data-k="en" type="time" value="${x.en}" style="padding:6px"></td>
+    <td>${esc([...new Set(rows.slice(0, 6).flatMap(r => x.cols.flatMap(c => cellNames(r[c]).map(n => n.name))))].slice(0, 3).join("، "))}</td></tr>`).join("");
+  $("pdf-box").hidden = true; $("auto-box").hidden = false;
+  return true;
+}
+$("au-go").onclick = () => {
+  const dept = $("au-dept").value.trim();
+  if (!dept) return msg("up-msg", "err", "اكتب اسم القسم فوق.");
+  document.querySelectorAll("#au-table tr[data-s]").forEach(tr => { const x = auto.slots[+tr.dataset.s];
+    x.kind = tr.querySelector('[data-k="kind"]').value; x.st = tr.querySelector('[data-k="st"]').value; x.en = tr.querySelector('[data-k="en"]').value; });
+  const items = [], noPhone = new Set();
+  auto.rows.forEach(r => {
+    const day = parseDay(String(r[auto.dateCol]).replace(/\s+/g, ""));
+    auto.slots.filter(x => x.kind).forEach(x => {
+      const seen = new Set();
+      x.cols.forEach(c => cellNames(r[c]).forEach(n => {
+        const m = matchName(n.name, dept, auto.book), name = "د. " + m.name, phone = n.phone || m.phone;
+        if (seen.has(name)) return; seen.add(name);
+        if (!phone) noPhone.add(m.name);
+        items.push({ dept, day, level: x.kind === "clinic" ? "oth" : x.kind, name, phone, start_t: x.st, end_t: x.en, note: slotNote(x.kind, x.st, x.head) });
+      }));
+    });
+  });
+  $("auto-box").hidden = true;
+  showItems({ items, errors: items.length ? [] : ["ما طلع ولا طبيب. جرّب «ربط الأعمدة يدوياً»."] });
+  if (items.length && noPhone.size) $("up-msg").insertAdjacentHTML("beforeend", `<div class="msg info">${icon("alert")}<div>بدون رقم جوال: <b>${[...noPhone].map(esc).join("، ")}</b>. تقدر تضيفه بعد الحفظ من ✏️.</div></div>`);
+};
+$("au-manual").onclick = () => { $("auto-box").hidden = true; renderPdfMap(); };
+$("au-cancel").onclick = () => { auto = null; $("auto-box").hidden = true; $("file").value = ""; msg("up-msg"); };
 let pdfGrid = [];
 const ROLE = [["", "تجاهل"], ["dept", "القسم"], ["day", "التاريخ / اليوم"], ["level", "المستوى"], ["name", "الاسم"], ["phone", "الجوال"],
   ["start_t", "من"], ["end_t", "إلى"], ["n_res", "اسم المقيم"], ["n_spec", "اسم الأخصائي"], ["n_cons", "اسم الاستشاري"]];

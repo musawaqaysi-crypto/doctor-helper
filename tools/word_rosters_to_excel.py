@@ -317,7 +317,7 @@ if F.get("PEDIATRIC_SPECIALIST_AND_CONSULTANT"):
         add("الأطفال", d, "استشاري", r[5], "", "", "استشاري مناوب", book)
         clinic("الأطفال", d, r[6], "08:00", "16:00", "العيادة الخارجية", book)
 # Corrections the user gave for numbers missing or mistyped in the rosters
-PHONE_FIX = {"sofian": "0501552909"}
+PHONE_FIX = {"anas": "0567568068", "safiah": "0508334081", "laila": "0554539584", "sofian": "0501552909"}
 for r in rows:
     r[3] = re.sub(r'^د\. D\s*R\.?\s*', 'د. ', r[3], flags=re.I)
     k = key(r[3].replace("د. ", "").split()[0]) if r[3].replace("د. ", "").split() else ""
