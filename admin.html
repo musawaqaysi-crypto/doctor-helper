@@ -635,7 +635,8 @@ async function loadDay(){
     by[d].map(r => `<div class="doc"><span class="lvl ${r.level}">${LV[r.level]}</span>
       <div class="txt">${esc(r.name)}<div class="sub">${r.note ? `${esc(r.note)} · ` : ""}${r.phone ? `<bdi>${esc(r.phone)}</bdi>` : ""}${r.start_t ? ` · <bdi>${r.start_t}–${r.end_t}</bdi>` : ""}</div></div>
       <button class="icon-btn ed" data-edit="${r.id}" aria-label="تعديل ${esc(r.name)}">${icon("edit")}</button>
-      <button class="icon-btn" data-del="${r.id}" aria-label="حذف ${esc(r.name)}">${icon("trash")}</button></div>`).join("") + `</div>`).join("") + `</div>`
+      <button class="icon-btn" data-del="${r.id}" aria-label="حذف ${esc(r.name)}">${icon("trash")}</button></div>`).join("") +
+    `<div class="doc add-row"><button class="btn ghost" type="button" data-add="${esc(d)}">${icon("plus")}إضافة مناوب في ${esc(d)}</button></div></div>`).join("") + `</div>`
     : `<p class="empty">ما فيه مناوبات مسجلة لهذا اليوم.</p>`;
   const all = await sb.from("duty").select("dept").limit(1000);
   $("depts").innerHTML = [...new Set((all.data || []).map(r => r.dept))].map(d => `<option value="${esc(d)}">`).join("");
@@ -645,6 +646,8 @@ $("day-list").onclick = async e => {
   const ed = e.target.closest("[data-edit]");
   if (ed) return editRow(ed.closest(".doc"), dayRows.find(r => r.id === +ed.dataset.edit));
   if (e.target.closest("[data-cancel]")) return loadDay();
+  const ad = e.target.closest("[data-add]");
+  if (ad) return editRow(ad.closest(".doc"), { id: "new", dept: ad.dataset.add, level: "cons", name: "", phone: "", start_t: "", end_t: "", note: "" });
   const sv = e.target.closest("[data-save]");
   if (sv) {
     const box = sv.closest(".doc"), v = k => box.querySelector(`[data-k="${k}"]`).value;
@@ -653,8 +656,11 @@ $("day-list").onclick = async e => {
     let note = v("note").trim();
     if (v("level") !== "oth" && /^عيادة/.test(note)) note = "";
     sv.disabled = true;
-    const { error } = await sb.from("duty").update({ dept: v("dept").trim(), level: v("level"), name: v("name").trim(),
-      phone: v("phone").replace(/[^\d+]/g, ""), start_t: v("start"), end_t: v("end"), note }).eq("id", +sv.dataset.save);
+    const row = { dept: v("dept").trim(), level: v("level"), name: v("name").trim(),
+      phone: v("phone").replace(/[^\d+]/g, ""), start_t: v("start"), end_t: v("end"), note };
+    const { error } = sv.dataset.save === "new"
+      ? await sb.from("duty").insert({ ...row, day: $("day").value })
+      : await sb.from("duty").update(row).eq("id", +sv.dataset.save);
     if (error) { sv.disabled = false; sv.textContent = "ما انحفظ، حاول مرة ثانية"; return; }
     return loadDay();
   }
@@ -674,8 +680,11 @@ function editRow(box, r){
     <div class="field"><label>الجوال</label><input data-k="phone" dir="ltr" inputmode="tel" value="${esc(r.phone || "")}"></div>
     <div class="field"><label>من</label><input data-k="start" type="time" value="${esc((r.start_t || "").slice(0, 5))}"></div>
     <div class="field"><label>إلى</label><input data-k="end" type="time" value="${esc((r.end_t || "").slice(0, 5))}"></div>
-    <div class="row" style="width:100%"><button class="btn primary" type="button" data-save="${r.id}">${icon("check")}حفظ التعديل</button>
+    <div class="row" style="width:100%"><button class="btn primary" type="button" data-save="${r.id}">${icon("check")}${r.id === "new" ? "إضافة" : "حفظ التعديل"}</button>
       <button class="btn ghost" type="button" data-cancel>إلغاء</button></div>`;
+  box.querySelector('[data-k="name"]').focus();
+  // Enter saves
+  box.onkeydown = ev => { if (ev.key === "Enter") { ev.preventDefault(); box.querySelector("[data-save]").click(); } };
 }
 $("f-add").onsubmit = async e => {
   e.preventDefault();
