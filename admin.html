@@ -134,6 +134,7 @@ td.num{font-family:var(--f-data);direction:ltr;text-align:right}
     <div class="mark"><svg class="i"><use href="#i-logo"/></svg></div>
     <div class="ttl"><h1>لوحة المشرف</h1><p>مُناوِب · جداول المناوبات</p></div>
     <a class="btn ghost" href="./"><svg class="i"><use href="#i-eye"/></svg>التطبيق</a>
+    <button class="btn ghost" id="pw-btn" hidden><svg class="i"><use href="#i-key"/></svg>الرقم السري</button>
     <button class="btn ghost" id="logout" hidden><svg class="i"><use href="#i-out"/></svg>خروج</button>
   </div>
 </header>
@@ -142,10 +143,20 @@ td.num{font-family:var(--f-data);direction:ltr;text-align:right}
 <main class="wrap" id="v-login" hidden>
   <section class="card login">
     <div class="card-h"><span class="tile"><svg class="i"><use href="#i-mail"/></svg></span>
-      <div><h2>دخول المشرف</h2><p>يوصلك رابط دخول على إيميلك</p></div></div>
-    <form id="f-email" class="row">
-      <div class="field"><label for="email">الإيميل</label><input id="email" type="email" required dir="ltr" autocomplete="email"></div>
-      <button class="btn primary">أرسل رابط الدخول</button>
+      <div><h2>دخول المشرف</h2><p>بالرقم السري</p></div></div>
+    <form id="f-pass" class="row">
+      <div class="field" id="email-f"><label for="email">الإيميل</label><input id="email" type="email" required dir="ltr" autocomplete="username"></div>
+      <div class="field"><label for="pass">الرقم السري</label><input id="pass" type="password" required dir="ltr" autocomplete="current-password"></div>
+      <button class="btn primary">دخول</button>
+    </form>
+    <p style="font-size:13px;margin:10px 0 0"><a href="#" id="forgot">نسيت الرقم السري أو أول مرة؟ أرسل رابط دخول على الإيميل</a>
+      <span id="email-saved" hidden> · <a href="#" id="email-change">تغيير الإيميل</a></span></p>
+    <form id="f-newpw" class="card" hidden style="background:var(--bg);padding:14px;margin-top:14px">
+      <b>اختر رقمك السري</b><p style="font-size:13px;margin:4px 0 8px">٨ خانات أو أكثر. بعدها تدخل به بدل الإيميل.</p>
+      <div class="row"><div class="field"><label for="np1">الرقم السري الجديد</label><input id="np1" type="password" dir="ltr" autocomplete="new-password" minlength="8" required></div>
+      <div class="field"><label for="np2">أعده مرة ثانية</label><input id="np2" type="password" dir="ltr" autocomplete="new-password" minlength="8" required></div>
+      <button class="btn primary">حفظ</button><button class="btn ghost" type="button" id="np-cancel">إلغاء</button></div>
+      <div id="np-msg"></div>
     </form>
     <div id="login-msg"></div>
   </section>
@@ -270,20 +281,51 @@ if (!C.url || !C.anonKey) { show("v-setup"); throw new Error("not configured"); 
 const sb = supabase.createClient(C.url, C.anonKey);
 
 // ---------- sign in ----------
-let email = "";
-$("f-email").onsubmit = async e => {
+// password sign-in; the e-mail is remembered on this device so only the password is asked. The e-mail link stays as the fallback.
+const savedEmail = () => { try { return localStorage.getItem("dh-admin-email") || ""; } catch { return ""; } };
+const keepEmail = v => { try { v ? localStorage.setItem("dh-admin-email", v) : localStorage.removeItem("dh-admin-email"); } catch {} };
+function emailField(){
+  const e = savedEmail(); $("email").value = e;
+  $("email-f").hidden = !!e; $("email-saved").hidden = !e;
+}
+emailField();
+$("email-change").onclick = e => { e.preventDefault(); keepEmail(""); emailField(); $("email").focus(); };
+$("f-pass").onsubmit = async e => {
   e.preventDefault();
-  email = $("email").value.trim();
+  const email = $("email").value.trim();
+  const { error } = await sb.auth.signInWithPassword({ email, password: $("pass").value });
+  $("pass").value = "";
+  if (error) return msg("login-msg", "err", "الرقم السري أو الإيميل غير صحيح. إذا ما اخترت رقماً سرياً بعد، ادخل برابط الإيميل أول.");
+  keepEmail(email);
+};
+$("forgot").onclick = async e => {
+  e.preventDefault();
+  const email = $("email").value.trim();
+  if (!email) { $("email-f").hidden = false; $("email").focus(); return msg("login-msg", "info", "اكتب إيميلك أول، ثم اضغط الرابط مرة ثانية."); }
   const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: location.href.split("#")[0] } });
   if (error) return msg("login-msg", "err", "هذا الإيميل غير مسجّل كمشرف، أو صار خطأ في الإرسال. تأكد من الإيميل وحاول مرة ثانية.");
-  msg("login-msg", "info", "أرسلنا رابط دخول على إيميلك. افتحه من نفس الجهاز ونفس المتصفح. الرابط صالح لساعة.");
+  keepEmail(email);
+  msg("login-msg", "info", "أرسلنا رابط دخول على إيميلك. افتحه من نفس الجهاز ونفس المتصفح، وبعدها اختر رقمك السري من زر «الرقم السري».");
 };
 $("logout").onclick = () => sb.auth.signOut();
+$("pw-btn").onclick = () => { show("v-login"); $("f-pass").hidden = true; $("forgot").parentElement.hidden = true; $("f-newpw").hidden = false; msg("login-msg", "", ""); $("np1").focus(); };
+const closePw = () => { $("f-newpw").hidden = true; $("f-pass").hidden = false; $("forgot").parentElement.hidden = false; msg("np-msg", "", ""); show("v-admin"); };
+$("np-cancel").onclick = closePw;
+$("f-newpw").onsubmit = async e => {
+  e.preventDefault();
+  if ($("np1").value.length < 8) return msg("np-msg", "err", "الرقم السري لازم يكون ٨ خانات أو أكثر.");
+  if ($("np1").value !== $("np2").value) return msg("np-msg", "err", "الرقمين مو متطابقين.");
+  const { error } = await sb.auth.updateUser({ password: $("np1").value });
+  if (error) return msg("np-msg", "err", "ما انحفظ: " + esc(error.message));
+  $("np1").value = $("np2").value = "";
+  closePw(); alert("✅ انحفظ الرقم السري. المرة الجاية ادخل به.");
+};
 
 // supabase-js deadlocks if the auth callback awaits another Supabase call, so the admin check runs after it returns.
 sb.auth.onAuthStateChange((_ev, session) => { setTimeout(() => enter(session), 0); });
 async function enter(session){
-  $("logout").hidden = !session;
+  $("logout").hidden = $("pw-btn").hidden = !session;
+  if (session?.user?.email) keepEmail(session.user.email);
   if (!session) return show("v-login");
   const { data } = await sb.rpc("is_admin");
   if (!data) { await sb.auth.signOut(); msg("login-msg", "err", "هذا الحساب ما عنده صلاحية مشرف."); return; }
