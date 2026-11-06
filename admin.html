@@ -204,6 +204,7 @@ td.num{font-family:var(--f-data);direction:ltr;text-align:right}
       <div class="field" style="max-width:220px"><label for="day">اليوم</label><input id="day" type="date"></div>
       <button class="btn ghost" id="day-prev">اليوم السابق</button>
       <button class="btn ghost" id="day-next">اليوم التالي</button>
+      <button class="btn primary" id="day-add" type="button"><svg class="i"><use href="#i-plus"/></svg>إضافة مناوب</button>
     </div>
     <div id="day-list"></div>
     <form id="f-add" class="card" style="background:var(--bg);padding:14px">
@@ -578,6 +579,7 @@ $("day").value = iso(new Date());
 $("day").onchange = loadDay;
 const shift = n => { const d = new Date($("day").value + "T12:00"); d.setDate(d.getDate() + n); $("day").value = iso(d); loadDay(); };
 $("day-prev").onclick = () => shift(-1);
+$("day-add").onclick = () => { $("f-add").scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => $("a-dept").focus(), 400); };
 $("day-next").onclick = () => shift(1);
 async function loadDay(){
   const { data, error } = await sb.from("duty").select("*").eq("day", $("day").value);
