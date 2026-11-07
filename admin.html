@@ -230,6 +230,7 @@ td.num{font-family:var(--f-data);direction:ltr;text-align:right}
       <button class="btn ghost" id="day-prev">اليوم السابق</button>
       <button class="btn ghost" id="day-next">اليوم التالي</button>
       <button class="btn primary" id="day-add" type="button"><svg class="i"><use href="#i-plus"/></svg>إضافة مناوب</button>
+      <button class="btn ghost" id="day-print" type="button">🖨️ تقرير المناوبين (طباعة / PDF)</button>
     </div>
     <div id="day-list"></div>
     <form id="f-add" class="card" style="background:var(--bg);padding:14px">
@@ -784,6 +785,49 @@ $("day").value = iso(new Date());
 $("day").onchange = loadDay;
 const shift = n => { const d = new Date($("day").value + "T12:00"); d.setDate(d.getDate() + n); $("day").value = iso(d); loadDay(); };
 $("day-prev").onclick = () => shift(-1);
+// printable on-call report for the chosen day: department, grade, name, mobile and hours (clinics are left out)
+$("day-print").onclick = () => {
+  const day = $("day").value, rows = dayRows.filter(r => !/^عيادة|opd|clinic/i.test(r.note || ""));
+  const by = {};
+  rows.slice().sort((a, b) => ORDER[a.level] - ORDER[b.level] || a.name.localeCompare(b.name, "ar")).forEach(r => (by[r.dept] ||= []).push(r));
+  const depts = Object.keys(by).sort((a, b) => a.localeCompare(b, "ar"));
+  const date = new Date(day + "T12:00").toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", {weekday: "long", day: "numeric", month: "long", year: "numeric"});
+  const hours = r => r.start_t ? `<bdi>${esc(r.start_t)} – ${esc(r.end_t)}</bdi>` : "طوال اليوم";
+  const body = depts.length ? depts.map(d => by[d].map((r, i) => `<tr>${i === 0 ? `<td class="dept" rowspan="${by[d].length}">${esc(d)}</td>` : ""}
+      <td><span class="lv ${r.level}">${LV[r.level]}</span></td><td class="nm">${esc(r.name)}</td><td class="ph"><bdi>${esc(r.phone || "—")}</bdi></td>
+      <td class="tm">${hours(r)}</td><td class="nt">${esc(r.note || "")}</td></tr>`).join("")).join("")
+    : `<tr><td colspan="6" style="text-align:center;padding:30px">لا توجد مناوبات مسجلة لهذا اليوم.</td></tr>`;
+  const w = window.open("", "_blank");
+  if (!w) return alert("المتصفح منع فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة لهذا الموقع.");
+  w.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير المناوبين — ${esc(day)}</title>
+<style>
+@page{size:A4;margin:12mm}
+*{box-sizing:border-box}body{font-family:"Segoe UI",Tahoma,-apple-system,"SF Arabic",sans-serif;color:#14213d;margin:0}
+.hd{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1a2a5a;padding-bottom:10px;margin-bottom:12px}
+.hd img{height:58px}.hd h1{margin:0;font-size:22px;color:#1a2a5a}.hd .d{font-size:15px;color:#5b6785;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#1a2a5a;color:#fff;padding:7px 6px;text-align:right;font-size:12.5px}
+td{border:1px solid #cfd6e6;padding:6px;vertical-align:middle}
+td.dept{background:#eef2fb;font-weight:800;color:#1a2a5a;width:16%}
+td.nm{font-weight:700}td.ph{direction:ltr;text-align:right;font-family:Menlo,Consolas,monospace;width:15%}
+td.tm{width:15%;white-space:nowrap}td.nt{color:#5b6785;font-size:12px}
+.lv{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap}
+.lv.res{background:#fff4d6;color:#8a6100}.lv.spec{background:#ffe3e0;color:#a3261b}.lv.cons{background:#dde8ff;color:#1f3f99}.lv.oth{background:#e7f6ee;color:#1f7a4d}
+tr{page-break-inside:avoid}
+.ft{display:flex;justify-content:space-between;margin-top:14px;font-size:11.5px;color:#5b6785}
+.sum{font-size:13px;margin:0 0 10px;color:#334}
+@media screen{body{padding:20px;max-width:1000px;margin:auto}}
+.tip{background:#fff7e6;border:1px solid #f5c26b;border-radius:8px;padding:8px 12px;font-size:13px}
+@media print{.tip{display:none}}
+</style></head><body>
+<div class="hd"><div><h1>تقرير المناوبين</h1><div class="d">${esc(date)}</div></div><img src="${location.href.replace(/admin\.html.*$/, "")}img/lockup.png" alt=""></div>
+<p class="tip">💡 لحفظه PDF: من نافذة الطباعة اختر الوجهة «حفظ كـ PDF» (Save as PDF) ثم «حفظ».</p>
+<p class="sum">عدد الأقسام: <b>${depts.length}</b> · عدد المناوبين: <b>${rows.length}</b></p>
+<table><thead><tr><th>القسم</th><th>الدرجة</th><th>الاسم</th><th>الجوال</th><th>الوقت</th><th>ملاحظة</th></tr></thead><tbody>${body}</tbody></table>
+<div class="ft"><span>مستشفى صامطة العام — مُناوِب</span><span>طُبع: ${new Date().toLocaleString("ar-SA-u-ca-gregory-nu-latn")}</span></div>
+<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
+  w.document.close();
+};
 $("day-add").onclick = () => { $("f-add").scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => $("a-dept").focus(), 400); };
 $("day-next").onclick = () => shift(1);
 async function loadDay(){
