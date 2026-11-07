@@ -258,6 +258,10 @@ header h1{font-size:1rem}
 .board-h{display:flex;flex-direction:column;gap:6px}
 .datepill{align-self:center;display:inline-flex;align-items:center;gap:8px;background:var(--raise);border:1px solid var(--line);
   border-radius:999px;padding:5px 14px;font-size:.82rem;font-weight:600}
+.datepill{flex-wrap:wrap;justify-content:center;row-gap:2px;text-align:center;max-width:100%}
+.datepill:has(.dp-note){border-radius:18px;padding:6px 16px}
+.datepill .dp-main{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.datepill .dp-note{flex-basis:100%;font-size:.76rem;opacity:.8;font-weight:500}
 .datepill .dot,.status .dot{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 0 3px color-mix(in srgb,var(--live) 20%,transparent)}
 .board-h .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .addbtn{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border-radius:12px;padding:9px 16px;font-weight:700;text-decoration:none;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 35%,transparent)}
@@ -697,7 +701,7 @@ function renderOncall(q){
     : "";
   const nav = dutySrc === "demo" ? "" : `<div class="daynav"><button data-nav="-1">${icon("back", "flip")}${t("prev")}</button>
     ${viewDay ? `<button data-nav="0">${t("now")}</button>` : ""}<button data-nav="1">${t("next")}${icon("back", "flip2")}</button></div>`;
-  const head = `<div class="board-h"><span class="datepill"><span class="dot"></span>${esc(today)}${viewDay ? "" : ` · <bdi>${hm(new Date())}</bdi>`}${carry ? `<small style="opacity:.8">${esc(carry)}</small>` : ""}</span>${nav}
+  const head = `<div class="board-h"><span class="datepill"><span class="dot"></span><span class="dp-main"><span class="dp-date">${esc(today)}</span>${viewDay ? "" : `<bdi>${hm(new Date())}</bdi>`}</span>${carry ? `<small class="dp-note">${esc(carry.replace(/^ · /, ""))}</small>` : ""}</span>${nav}
     <div class="top"><div><h2>${t("board")}</h2><p>${t("board_p")}</p></div>
 </div></div>`;
   let hits = 0;
