@@ -312,6 +312,14 @@ aside.side{display:none}
 .tab[data-tab="paths"] .i{width:26px;height:26px}
 .tab[data-tab="paths"][aria-selected="true"]{box-shadow:0 6px 18px rgba(220,38,38,.55),inset 0 0 0 2px #fff}
 .side .nav[data-tab="paths"]{box-shadow:0 4px 14px rgba(220,38,38,.4)}
+/* install-to-home-screen banner (Android one-tap, iPhone/other browsers: short steps) */
+.inst{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;background:#fff;color:#0f172a;border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);padding:14px 16px;display:flex;gap:12px;align-items:center;max-width:520px;margin:0 auto;font:500 .95rem var(--f-body)}
+.inst img{width:44px;height:44px;border-radius:10px;flex:none}
+.inst .tx{flex:1;line-height:1.5}.inst .tx b{display:block;font-size:1rem}
+.inst .go{border:0;border-radius:12px;background:#2563eb;color:#fff;font:700 .95rem var(--f-body);padding:10px 16px;cursor:pointer;white-space:nowrap}
+.inst .x{border:0;background:none;color:#64748b;font-size:1.3rem;cursor:pointer;padding:4px}
+.inst ol{margin:6px 0 0;padding-inline-start:18px;font-size:.88rem;color:#334155}
 </style>
 </head>
 <body>
@@ -950,6 +958,43 @@ if (!T[lang]) lang = "ar";
 if (!["oncall", "clinics", "paths", "links", "protocols"].includes(tab)) tab = "oncall";
 loadDuty();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+// ---------- add to home screen ----------
+// Android Chrome/Edge: one-tap install from the browser's own prompt. Elsewhere (iPhone, Samsung Internet, a link opened inside
+// WhatsApp) the browser can't be asked, so a short how-to is shown instead. Hidden once installed or dismissed.
+(function(){
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  let dismissed = false; try { dismissed = localStorage.getItem("dh-inst-off") === "1"; } catch {}
+  if (standalone || dismissed) return;
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua), android = /Android/.test(ua);
+  const inApp = /FBAN|FBAV|Instagram|WhatsApp|Snapchat|Line\/|wv\)/.test(ua);
+  const ar = () => lang !== "en";
+  let deferred = null;
+  function show(html){
+    document.querySelector(".inst")?.remove();
+    const d = document.createElement("div"); d.className = "inst"; d.dir = ar() ? "rtl" : "ltr";
+    d.innerHTML = `<img src="icons/icon-192.png" alt="">${html}<button class="x" aria-label="close">×</button>`;
+    d.querySelector(".x").onclick = () => { d.remove(); try { localStorage.setItem("dh-inst-off", "1"); } catch {} };
+    document.body.append(d); return d;
+  }
+  window.addEventListener("beforeinstallprompt", e => {
+    e.preventDefault(); deferred = e;
+    const d = show(`<div class="tx"><b>${ar() ? "ثبّت مُناوِب على جوالك" : "Install Munawib on your phone"}</b>${ar() ? "يفتح من الشاشة الرئيسية مثل أي تطبيق" : "Opens from your home screen like any app"}</div>
+      <button class="go">${ar() ? "تثبيت" : "Install"}</button>`);
+    d.querySelector(".go").onclick = async () => { deferred.prompt(); const r = await deferred.userChoice; if (r.outcome === "accepted") d.remove(); deferred = null; };
+  });
+  window.addEventListener("appinstalled", () => document.querySelector(".inst")?.remove());
+  // no prompt after a few seconds: explain the manual way for this browser
+  setTimeout(() => {
+    if (deferred || document.querySelector(".inst")) return;
+    let steps;
+    if (inApp) steps = ar() ? ["اضغط ⋮ أو ••• أعلى الشاشة", "اختر «فتح في المتصفح» (Chrome)", "بيطلع لك زر «تثبيت»"] : ["Tap ⋮ or ••• at the top", "Choose “Open in browser” (Chrome)", "An Install button will appear"];
+    else if (ios) steps = ar() ? ["اضغط زر المشاركة ⬆️ أسفل Safari", "اختر «إضافة إلى الشاشة الرئيسية»", "اضغط «إضافة»"] : ["Tap Share ⬆️ in Safari", "Choose “Add to Home Screen”", "Tap Add"];
+    else if (android) steps = ar() ? ["اضغط ⋮ أعلى المتصفح", "اختر «إضافة إلى الشاشة الرئيسية» أو «تثبيت التطبيق»", "اضغط «إضافة»"] : ["Tap ⋮ at the top of the browser", "Choose “Add to Home screen” or “Install app”", "Tap Add"];
+    else return;
+    show(`<div class="tx"><b>${ar() ? "أضف مُناوِب للشاشة الرئيسية" : "Add Munawib to your home screen"}</b><ol>${steps.map(x => `<li>${x}</li>`).join("")}</ol></div>`);
+  }, 4000);
+})();
+
 </script>
 </body>
 </html>
