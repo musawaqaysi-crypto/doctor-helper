@@ -588,10 +588,13 @@ const deptName = d => lang === "en" ? (DEPT_EN[d] || d) : d;
 const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const hm = d => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
-// A row without times covers its whole date; a shift that ends at or before its start runs past midnight.
+// The duty day turns over at the 07:30 handover, not at midnight: before 07:30 it is still yesterday's roster.
+const HANDOVER = "07:30";
+const dutyDay = (now = new Date()) => { const d = new Date(now); if (hm(d) < HANDOVER) d.setDate(d.getDate() - 1); return ymd(d); };
+// A row without times covers its duty day (07:30 to 07:30); a shift that ends at or before its start runs past midnight.
 function covers(r, now){
   const s = new Date(`${r.day}T${r.start_t || "00:00"}`);
-  if (!r.start_t || !r.end_t) return r.day === ymd(now);
+  if (!r.start_t || !r.end_t) return r.day === dutyDay(now);
   const e = new Date(`${r.day}T${r.end_t}`);
   if (e <= s) e.setDate(e.getDate() + 1);
   return s <= now && now < e;
@@ -647,7 +650,7 @@ async function loadDuty(){
   }
 }
 function goDay(d){ viewDay = d; cat = "all"; loadDuty(); }
-function shiftDay(n){ const d = new Date(`${viewDay || ymd(new Date())}T12:00`); d.setDate(d.getDate() + n); goDay(ymd(d)); }
+function shiftDay(n){ const d = new Date(`${viewDay || dutyDay()}T12:00`); d.setDate(d.getDate() + n); goDay(ymd(d)); }
 
 function renderLock(){
   const inp = `padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;width:100%`;
@@ -687,7 +690,7 @@ function renderOncall(q){
     : `<p class="status"><span class="dot"></span>${me ? `${t("hello")} ${esc(me)} · ` : ""}${dutySrc === "day" ? t("day") : `${t(dutySrc)} <bdi>${esc(duty.at)}</bdi>`}
         ${me ? `<button id="signout" style="margin-inline-start:auto;border:0;background:none;color:var(--muted);font:inherit;text-decoration:underline;cursor:pointer">${t("signout")}</button>` : ""}</p>`;
   const fmt = d => d.toLocaleDateString(lang === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {weekday: "long", day: "numeric", month: "long"});
-  const today = fmt(viewDay ? new Date(`${viewDay}T12:00`) : new Date());
+  const today = fmt(new Date(`${viewDay || dutyDay()}T12:00`));
   const nav = dutySrc === "demo" ? "" : `<div class="daynav"><button data-nav="-1">${icon("back", "flip")}${t("prev")}</button>
     ${viewDay ? `<button data-nav="0">${t("now")}</button>` : ""}<button data-nav="1">${t("next")}${icon("back", "flip2")}</button></div>`;
   const head = `<div class="board-h"><span class="datepill"><span class="dot"></span>${esc(today)}${viewDay ? "" : ` · <bdi>${hm(new Date())}</bdi>`}</span>${nav}
@@ -731,7 +734,7 @@ function demoRows(){
 }
 function renderClinics(q){
   const fmt = d => d.toLocaleDateString(lang === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {weekday: "long", day: "numeric", month: "long"});
-  const day = viewDay || ymd(new Date());
+  const day = viewDay || dutyDay();
   const nav = `<div class="daynav"><button data-nav="-1">${icon("back", "flip")}${t("prev")}</button>
     ${viewDay ? `<button data-nav="0">${t("now")}</button>` : ""}<button data-nav="1">${t("next")}${icon("back", "flip2")}</button></div>`;
   const head = `<div class="board-h"><span class="datepill"><span class="dot"></span>${esc(fmt(new Date(`${day}T12:00`)))}</span>${nav}
