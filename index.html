@@ -690,10 +690,14 @@ function renderOncall(q){
     : `<p class="status"><span class="dot"></span>${me ? `${t("hello")} ${esc(me)} · ` : ""}${dutySrc === "day" ? t("day") : `${t(dutySrc)} <bdi>${esc(duty.at)}</bdi>`}
         ${me ? `<button id="signout" style="margin-inline-start:auto;border:0;background:none;color:var(--muted);font:inherit;text-decoration:underline;cursor:pointer">${t("signout")}</button>` : ""}</p>`;
   const fmt = d => d.toLocaleDateString(lang === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {weekday: "long", day: "numeric", month: "long"});
-  const today = fmt(new Date(`${viewDay || dutyDay()}T12:00`));
+  // the pill shows the real date and time; before the 07:30 handover a note says whose roster is showing
+  const today = fmt(viewDay ? new Date(`${viewDay}T12:00`) : new Date());
+  const carry = !viewDay && dutyDay() !== ymd(new Date())
+    ? (lang === "ar" ? ` · مناوبة ${fmt(new Date(`${dutyDay()}T12:00`)).split("،")[0]} مستمرة حتى ٧:٣٠ صباحاً` : ` · ${fmt(new Date(`${dutyDay()}T12:00`)).split(" ")[0]}'s on-call until 07:30`)
+    : "";
   const nav = dutySrc === "demo" ? "" : `<div class="daynav"><button data-nav="-1">${icon("back", "flip")}${t("prev")}</button>
     ${viewDay ? `<button data-nav="0">${t("now")}</button>` : ""}<button data-nav="1">${t("next")}${icon("back", "flip2")}</button></div>`;
-  const head = `<div class="board-h"><span class="datepill"><span class="dot"></span>${esc(today)}${viewDay ? "" : ` · <bdi>${hm(new Date())}</bdi>`}</span>${nav}
+  const head = `<div class="board-h"><span class="datepill"><span class="dot"></span>${esc(today)}${viewDay ? "" : ` · <bdi>${hm(new Date())}</bdi>`}${carry ? `<small style="opacity:.8">${esc(carry)}</small>` : ""}</span>${nav}
     <div class="top"><div><h2>${t("board")}</h2><p>${t("board_p")}</p></div>
 </div></div>`;
   let hits = 0;
