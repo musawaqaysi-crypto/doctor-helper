@@ -696,9 +696,7 @@ function renderOncall(q){
   const fmt = d => d.toLocaleDateString(lang === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {weekday: "long", day: "numeric", month: "long"});
   // the pill shows the real date and time; before the 07:30 handover a note says whose roster is showing
   const today = fmt(viewDay ? new Date(`${viewDay}T12:00`) : new Date());
-  const carry = !viewDay && dutyDay() !== ymd(new Date())
-    ? (lang === "ar" ? ` · مناوبة ${fmt(new Date(`${dutyDay()}T12:00`)).split("،")[0]} مستمرة حتى ٧:٣٠ صباحاً` : ` · ${fmt(new Date(`${dutyDay()}T12:00`)).split(" ")[0]}'s on-call until 07:30`)
-    : "";
+  const carry = "";
   const nav = dutySrc === "demo" ? "" : `<div class="daynav"><button data-nav="-1">${icon("back", "flip")}${t("prev")}</button>
     ${viewDay ? `<button data-nav="0">${t("now")}</button>` : ""}<button data-nav="1">${t("next")}${icon("back", "flip2")}</button></div>`;
   const head = `<div class="board-h"><span class="datepill"><span class="dot"></span><span class="dp-main"><span class="dp-date">${esc(today)}</span>${viewDay ? "" : `<bdi>${hm(new Date())}</bdi>`}</span>${carry ? `<small class="dp-note">${esc(carry.replace(/^ · /, ""))}</small>` : ""}</span>${nav}
