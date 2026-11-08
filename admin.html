@@ -572,6 +572,8 @@ function headKind(h){
   if (/special|regist|أخصائ|اخصائ|إخصائ|نائب|2nd|second/.test(s)) return "spec";
   if (/resident|مقيم|1st|first|\br\d\b|intern|امتياز/.test(s)) return "res";
   if (/on\s*-?\s*cal|duty|مناوب|doctor/.test(s)) return "oth";
+  // shift columns, e.g. the ER roster: "MORNING 7:30 – 19:30 MER" / "NIGHT 19:30 – 7:30 FER"
+  if (/morning|night|evening|\bmer\b|\bfer\b|\bper\b|صباح|مساء|ليل/.test(s) || headTimes(h)) return "oth";
   return "";
 }
 function clinicLabel(h){
@@ -589,6 +591,12 @@ function slotDefaults(head){
 }
 function slotNote(kind, st, head){
   if (kind === "clinic") return "عيادة · " + clinicLabel(head);
+  if (kind === "oth") {
+    const w = String(head).toLowerCase();
+    const where = /\bmer\b/.test(w) ? "طوارئ رجال" : /\bfer\b/.test(w) ? "طوارئ نساء" : /\bper\b/.test(w) ? "طوارئ أطفال" : "";
+    const when = /morning|صباح/.test(w) ? "صباحي" : /night|ليل/.test(w) ? "ليلي" : /evening|مساء/.test(w) ? "مسائي" : "";
+    if (where || when) return [where || "مناوب", when].filter(Boolean).join(" ");
+  }
   const base = kind === "cons" ? "استشاري مناوب" : kind === "spec" ? "أخصائي مناوب" : kind === "res" ? "مقيم" : "مناوب";
   if (!st) return base;
   const h = +st.slice(0, 2);
@@ -600,7 +608,7 @@ function cellNames(cell){
   String(cell || "").split(/\/|,|&|\+|\n|\band\b|،/i).forEach(part => {
     const ph = (part.replace(/(?<=\b0)\s+(?=5\d{8})/, "").match(/05\d{8}/) || [""])[0];
     let n = part.replace(/\([^)]*\)/g, " ").replace(/0?5\d{8}/g, " ").replace(/^\s*(dr|د)\s*\.?\s*/i, "").replace(/[-–—:]+$/g, "").replace(/\s+/g, " ").trim();
-    if (!n || /^(off|leave|vacation|nil|none|n\/a|rod|-+|—+|\.+)$/i.test(n) || /on\s*call|specialist|consultant|resident|operating|room|annual/i.test(n)) return;
+    if (!n || /^(off|leave|vacation|nil|none|n\/a|[a-z]?rod|-+|—+|\.+)$/i.test(n) || /on\s*call|specialist|consultant|resident|operating|room|annual/i.test(n)) return;
     out.push({ name: n, phone: ph });
   });
   return out;
@@ -628,8 +636,10 @@ async function loadKnown(){
 }
 function matchName(raw, dept, book){
   const k = akey(raw);
-  const pick = list => { let best = null, sc = 0; list.forEach(x => { const r = similar(k, x.k); if (r > sc || (r === sc && !best?.phone && x.phone)) { best = x; sc = r; } }); return sc >= 0.8 ? best : null; };
-  const hit = pick(book) || pick(known.filter(x => x.dept === dept && x.phone)) || pick(known.filter(x => x.phone)) || pick(known.filter(x => x.dept === dept));
+  const pick = (list, min = 0.8) => { let best = null, sc = 0; list.forEach(x => { const r = similar(k, x.k); if (r > sc || (r === sc && !best?.phone && x.phone)) { best = x; sc = r; } }); return sc >= min ? best : null; };
+  // within the same department a looser match is safe (the roster's "Ethiong" is the department's "Effiong")
+  const hit = pick(book) || pick(known.filter(x => x.dept === dept && x.phone)) || pick(known.filter(x => x.phone)) || pick(known.filter(x => x.dept === dept))
+    || pick(known.filter(x => x.dept === dept && x.phone), 0.7);
   const title = raw.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
   return { name: hit ? hit.name : title, phone: hit?.phone || "" };
 }
