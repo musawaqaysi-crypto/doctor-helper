@@ -1,11 +1,19 @@
-const CACHE = "dh-v31";
+const CACHE = "dh-v32";
 const FILES = ["./", "index.html", "config.js", "manifest.json", "icons/icon-192.png", "icons/icon-512.png", "img/hospital.jpg", "img/logo.png", "img/lockup.png"];
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))));
 self.addEventListener("activate", e => e.waitUntil(
   caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))));
+// Network first, but a weak connection that hangs falls back to the saved copy after 4 s, so the app always opens.
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
-  e.respondWith(fetch(e.request).then(r => {
-    const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return r;
-  }).catch(() => caches.match(e.request)));
+  e.respondWith((async () => {
+    const cached = await caches.match(e.request, {ignoreSearch: true});
+    const net = fetch(e.request).then(r => {
+      if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
+      return r;
+    });
+    if (!cached) return net;
+    const slow = new Promise(res => setTimeout(() => res(cached), 4000));
+    return Promise.race([net.catch(() => cached), slow]);
+  })());
 });

@@ -14,7 +14,8 @@
 <meta name="apple-mobile-web-app-title" content="مُناوِب">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<!-- fonts load without blocking the page: on a weak or filtered network the board still shows at once in the system font -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
 <style>
 /* Layout: night-shift board — specialty sidebar on wide screens, dept cards with one tile per level; phones get a top header + bottom tabs.
    One deliberate dark navy look (the user's chosen reference), so no light theme. */
